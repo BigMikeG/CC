@@ -1,0 +1,11 @@
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalPlotDiff\CalPlotDiff\bin\Debug\CalCompare.exe
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalPlotDiff\CalPlotDiff\bin\Debug\CalCompare.pdb
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalPlotDiff\CalPlotDiff\bin\Debug\DataGridViewAutoFilter.dll
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalPlotDiff\CalPlotDiff\bin\Debug\DataGridViewAutoFilter.pdb
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalPlotDiff\CalPlotDiff\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalPlotDiff\CalPlotDiff\obj\x86\Debug\CalCompare.AboutBox.resources
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalPlotDiff\CalPlotDiff\obj\x86\Debug\CalCompare.MainForm.resources
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalPlotDiff\CalPlotDiff\obj\x86\Debug\GenerateResource.read.1.tlog
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalPlotDiff\CalPlotDiff\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalPlotDiff\CalPlotDiff\obj\x86\Debug\CalCompare.exe
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalPlotDiff\CalPlotDiff\obj\x86\Debug\CalCompare.pdb
