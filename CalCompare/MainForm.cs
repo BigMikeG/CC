@@ -1,6 +1,5 @@
 ﻿/*
  * Created by SharpDevelop.
- * User: GZNDQ9
  * Author: Mike Galiati
  * Date: 3/23/2012
  * Time: 12:23 PM
@@ -16,10 +15,14 @@
  * For instance load file1, file2, file3. They load fast.
  * Add file file4. It takes a lot longer than if you would have added all 4 the first time.
  * 
- * Features To Add:
- * 1) Add AutoFiltering of the calset column from bookmarked pages.
+ * To Do:
+ * 1) Export the grid to a csv file.
+ *    // Load the sample data and resize the columns based on their contents.
+ *    this.newDataSet.ReadXml(@"..\..\..\..\..\TestData.xml");
+ *    this.dataGridView1.AutoResizeColumns();
+ *    //this.newDataSet.WriteXml(@"..\..\..\..\..\TestDataOut.xml");
+ * 2) Add AutoFiltering of the calset column from bookmarked pages.
  *    Also hide the part columns that aren't in the calset.
- * 2) Add a scrollbar at bottom for large number of parts (try loading 10 parts).
  * 3) Selection of hex or eng values via radio button.
  * 4) Display values as ASCII characters.
  * 5) String Arrays:
@@ -27,7 +30,11 @@
  *       (1/10 0) becomes (01/10 0).
  *    B) Group character arrays into a single string.
  * 6) Make an option to hide Header and End cals.
- * 7) Export the grid to a csv file.
+ * 
+ * Done:
+ * - Horizontal scrollbar would not display. Had to right-click on the grid control in the designer and select "Bring To Front".
+ * - If you click the the upper left corner of the grid (selects everything) and hit Ctrl-C, the grid is copied to the clipboard.
+ *   You can then paste it into excel or where ever you like.
  */
 
 //using DataGridViewAutoFilter;
@@ -99,6 +106,7 @@ namespace CalCompare
     	        UpdateStatusLabel("Reading files and loading to the data table...");
 
                 // Read the files
+                //foreach (string file in openFileDialog1.FileNames) 
                 foreach (string file in openFileDialog1.FileNames) 
                 {
                     try
