@@ -16,35 +16,31 @@
  * Add file file4. It takes a lot longer than if you would have added all 4 the first time.
  * 
  * To Do:
- * 1) Export the grid to a csv file.
- *    // Load the sample data and resize the columns based on their contents.
- *    this.newDataSet.ReadXml(@"..\..\..\..\..\TestData.xml");
- *    this.dataGridView1.AutoResizeColumns();
- *    //this.newDataSet.WriteXml(@"..\..\..\..\..\TestDataOut.xml");
- * 2) Add AutoFiltering of the calset column from bookmarked pages.
- *    Also hide the part columns that aren't in the calset.
- * 3) Selection of hex or eng values via radio button.
- * 4) Display values as ASCII characters.
- * 5) String Arrays:
+ *  - Add AutoFiltering of the calset column from bookmarked pages.
+ *  - Hide the part columns that are blank when filtering.
+ *  - Selection of hex or eng values via radio button.
+ *  - Display values as ASCII characters.
+ *  - String Arrays:
  *    A) Insert zeroes into the calname so that it sorts better.
  *       (1/10 0) becomes (01/10 0).
  *    B) Group character arrays into a single string.
- * 6) Make an option to hide Header and End cals.
+ *  - Make an option to hide Header and End cals.
  * 
  * Done:
  * - Horizontal scrollbar would not display. Had to right-click on the grid control in the designer and select "Bring To Front".
  * - If you click the the upper left corner of the grid (selects everything) and hit Ctrl-C, the grid is copied to the clipboard.
  *   You can then paste it into excel or where ever you like.
+ * - Added Export and Import functionality.
  */
 
-//using DataGridViewAutoFilter;
 using System;
 using System.Collections.Generic;
 using System.Data;                      // DataTable
 using System.Diagnostics;               // Process
 using System.Drawing;                   // Color
-using System.IO;                        // File
+using System.IO;                        // File, StreamReader
 using System.Security;                  // SecurityException
+using System.Text;                      // StringBuilder
 using System.Text.RegularExpressions;   // Regex
 using System.Threading;                 // Sleep
 using System.Windows.Forms;
@@ -62,14 +58,15 @@ namespace CalCompare
             InitializeComponent();
         }
         
-        private DataTable fullTable; // complete cal data table
+        private DataTable fullTable; // complete cal data table loaded from calplots
         private DataTable diffTable; // only the rows with diffs
+        private DataTable filtTable; // used when something is typed in the filterTextBox
         
         void MainFormLoad(object sender, EventArgs e)
         {
             // All of the Calplot data that is read in will be stored in this table.
             // Then we will connect it to the DataGridView to make magic happen!
-            fullTable = new DataTable();
+            fullTable = new DataTable("FullTable");
             
             // Mandatory columns. A column for each part will be added later for each calplot opened.
             DataColumn Calset  = new DataColumn("Calset", typeof(string));
@@ -81,6 +78,20 @@ namespace CalCompare
             fullTable.Columns.Add(Calname);
             fullTable.Columns.Add(Units);
             fullTable.Columns.Add(Diff);
+            
+            BirthdayCheck();
+        }
+        
+        /// <summary>
+        /// Display a message if it is my birthday!
+        /// </summary>
+        void BirthdayCheck()
+        {
+        	Match match = Regex.Match(DateTime.Now.ToShortDateString(), @"(4)/(22)/(\d+)");
+        	if (match.Success)
+        	{
+                MessageBox.Show("It's April 22. Make sure to call and wish me a happy birthday!");
+        	}
         }
         
         void DataGridView1ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
@@ -310,7 +321,7 @@ namespace CalCompare
             // Select the rows that have diffs.
             DataRow[] dr = dt.Select("Diff = 'true'");
 
-            diffTable = new DataTable(); // create the diff table
+            diffTable = new DataTable("DiffTable"); // create the diff table
 
             // Did we find any rows with diffs?
             if (dr.Length > 0)
@@ -362,7 +373,7 @@ namespace CalCompare
                 // in the filter text box.
                 DataRow[] dr = dt.Select("Calname like '%" + filterTextBox.Text + "%'");
     
-                DataTable filtTable = new DataTable();
+                filtTable = new DataTable("FilteredTable");
                 
                 if (dr.Length > 0)
                 {
@@ -394,9 +405,6 @@ namespace CalCompare
         /// </summary>
         void SetDiffFlags(ref DataTable dt)
         {
-            // Bind the data table to the grid.
-            //dataGridView1.DataSource = dt;
-
             // Loop through the table            
             for (int row = 0; row < dt.Rows.Count - 1; row++)
             {
@@ -453,6 +461,286 @@ namespace CalCompare
             }
         }
 
+        /// <summary>
+        /// Export as comma delimited text file (.csv).
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        void ExportAsCsvClick(object sender, EventArgs e)
+        {
+            if (dataGridView1.RowCount < 1) 
+            {
+                ExportNullGridMessage();
+            }
+            else
+            {
+                csvSaveFileDialog.ShowDialog(); // Show the dialog.
+            }
+        }
+        
+        void ExportAsCsvFileOk(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            ExportAsTextDelimited(csvSaveFileDialog.FileName, ",");
+        }
+        
+        // You can use any delimiter you like (, ; tab etc).
+        void ExportAsTextDelimited(string filename, string delimiter)
+        {
+            int i;
+            StringBuilder sb = new StringBuilder();
+            
+            // Write the header row to the string builder.
+            // All but the last column needs a delimiter after it.
+            for (i = 0; i < (dataGridView1.Columns.Count - 1); i++)
+            {
+                sb.Append(dataGridView1.Columns[i].HeaderText + delimiter);
+            }
+            sb.Append(dataGridView1.Columns[dataGridView1.Columns.Count - 1].HeaderText); // last column header
+            sb.Append(Environment.NewLine);
+
+            // Now write each of the data rows to the string builder.
+            foreach (DataGridViewRow row in this.dataGridView1.Rows)
+            {
+                i = 0;
+                foreach (DataGridViewCell cell in row.Cells)
+                {
+                    if (i > 0) { sb.Append(delimiter); }
+                    sb.Append(cell.Value.ToString());
+                    i++;
+                }
+                sb.Append(Environment.NewLine);
+            }
+
+            // Write the string to a file.
+            using (StreamWriter writer = new StreamWriter(filename))
+            {
+                writer.Write(sb.ToString());
+            }        
+        }
+        
+        /// <summary>
+        /// Export as tab delimited text file (.csv).
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        void ExportAsTabDelimitedClick(object sender, EventArgs e)
+        {
+            if (dataGridView1.RowCount < 1) 
+            {
+                ExportNullGridMessage();
+            }
+            else
+            {
+                tabSaveFileDialog.ShowDialog(); // Show the dialog.
+            }
+        }
+        
+        void ExportAsTabFileOk(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            ExportAsTextDelimited(tabSaveFileDialog.FileName, "\t");
+        }
+        
+        /// <summary>
+        /// Export as XML formatted file.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        void ExportAsXmlClick(object sender, EventArgs e)
+        {
+            if (dataGridView1.RowCount < 1) 
+            {
+                ExportNullGridMessage();
+            }
+            else
+            {
+                xmlSaveFileDialog.ShowDialog(); // Show the dialog.
+            }
+        }
+        
+        void ExportAsXmlFileOk(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+    	    ((DataTable)dataGridView1.DataSource).WriteXml(xmlSaveFileDialog.FileName, XmlWriteMode.WriteSchema);
+        }
+        
+        void ExportNullGridMessage()
+        {
+            MessageBox.Show("What are you trying to Export? Air? Load something to the grid please!");
+        }
+        
+        void ImportClick(object sender, EventArgs e)
+        {
+            DialogResult result = importOpenFileDialog.ShowDialog(); // Show the dialog.
+
+    	    if (result == DialogResult.OK) // Test result.
+    	    {
+    	        // Determine the file type based on the files extension.
+    	        string ext = Path.GetExtension(importOpenFileDialog.FileName);
+    	        if (ext == ".csv")
+    	        {
+    	            ImportFromTextDelimited(importOpenFileDialog.FileName, ',');
+    	        }
+    	        else if (ext == ".txt") 
+    	        {
+                    ImportFromTextDelimited(importOpenFileDialog.FileName, '\t');
+    	        }
+    	        else if (ext == ".xml") 
+    	        {
+                    ImportFromXml();
+    	        }
+    	        else
+    	        {
+    	            // Invalid extension
+    	            UpdateStatusLabel("Invalid extention.");
+    	        }
+    	    }
+    	    else
+    	    {
+    	        UpdateStatusLabel("Import cancelled.");
+    	    }
+        }
+        
+        /// <summary>
+        /// This function imports data from a text delimited file.
+        /// </summary>
+        /// <param name="filename">The name of the file to import.</param>
+        /// <param name="delimiter">The text delimiter (such as a comma "," or 
+        /// tab "\t" that the rows in the file will be split on.</param>
+        void ImportFromTextDelimited(string filename, char delimiter)
+        {
+            char[] delimiters = new char[] { delimiter };
+            bool diffColFound = false;
+            DataTable dt = new DataTable();
+    
+            try
+            {
+                using (StreamReader sr = new StreamReader(filename))
+                {
+                    // Reading header
+                    string[] row = sr.ReadLine().Split(delimiters);
+                    foreach (string col in row) 
+                    {
+                        if (col.Equals("Diff"))
+                        {
+                            dt.Columns.Add(col, typeof(bool));
+                            diffColFound = true;
+                        }
+                        else
+                        {
+                            dt.Columns.Add(col, typeof(string));
+                        }
+                    }
+    
+                    // Reading the content (rows of data).
+                    while (sr.Peek() >= 0)
+                    {
+                        dt.Rows.Add(sr.ReadLine().Split(delimiters));
+                    }
+                }
+            } 
+            catch (Exception e) 
+            {
+                UpdateStatusLabel("Failed to read text file: " + e.ToString());
+            }
+                
+            // Only import if "Diff" header column exists.
+            if (diffColFound)
+            {
+                ClearTheGrid();
+                fullTable = dt;
+                dataGridView1.DataSource = fullTable;
+                UpdateStatusLabel("Data was imported. Creating diff table....");
+                CreateDiffTable(ref fullTable);  // create the diff table
+                UpdateStatusLabel("Diff table created. Displaying grid....");
+                DiffOrFilterChanged(null, null);  // display grid based on diff and filter settings
+                UpdateStatusLabel("Grid has been updated.");
+            }
+            else
+            {
+                UpdateStatusLabel("Import failed. I only import files that I exported.");
+            }
+        }
+            
+        void ImportFromXml()
+        {
+            try
+            {
+                // Read the XML file into a new table. Then copy to the full table to get all the part columns.
+                DataTable dt = new DataTable();
+                dt.ReadXml(importOpenFileDialog.FileName);
+                
+                // Only import if the "Diff" column exists.
+                if (dt.Columns["Diff"] == null)
+                {
+                    UpdateStatusLabel("Import failed. I only import files that I exported.");
+                }
+                else
+                {
+                    fullTable = dt;
+                    //fullTable.AcceptChanges(); // Do we need to do this?
+                    UpdateStatusLabel("Data was imported. Creating diff table....");
+                    
+                    CreateDiffTable(ref fullTable);  // create the diff table
+                    UpdateStatusLabel("Diff table created. Displaying grid....");
+                    
+                    DiffOrFilterChanged(null, null);  // display grid based on diff and filter settings
+                    UpdateStatusLabel("Grid has been updated.");
+                }
+            }
+            catch
+            {
+                UpdateStatusLabel("Import failed. I only import files that I exported.");
+            }
+        }
+
+        void ClearTheGridToolStripMenuItemClick(object sender, EventArgs e)
+        {
+            ClearTheGrid();
+        }
+        
+        void ClearTheGrid()
+        {
+            dataGridView1.DataSource = null;
+            dataGridView1.RowCount = 0;
+            dataGridView1.ColumnCount = 0;
+            
+            ClearTable(fullTable);
+            ClearTable(diffTable);
+            ClearTable(filtTable);
+        }
+
+        private void ClearTable(DataTable table)
+        {
+            if (table != null) 
+            {
+                try
+                {
+                    table.Clear();
+
+                    // Remove all part columns.
+                    for (int i = (table.Columns.Count - 1); i > table.Columns.IndexOf("Diff"); i--)
+                    {
+                        table.Columns.RemoveAt(i);
+                    }
+                }
+                catch (DataException e)
+                {
+                    // Process exception and return.
+                    MessageBox.Show("Exception of type {0} occurred.", e.GetType().ToString());
+                }
+            }
+        }
+
+        // Open the User's Guide in a web browser.
+        void UsersGuideToolStripMenuItemClick(object sender, EventArgs e)
+        {
+            LaunchBrowser("https://gmweb.gm.com/sites/CalSupport/Cal%20Compare");
+        }
+        
+        void CalSupportToolsWebSiteToolStripMenuItemClick(object sender, EventArgs e)
+        {
+            LaunchBrowser("https://gmweb.gm.com/sites/CalSupport");
+        }
+
         // Tries to open the User's Guide in a web browser.
         void LaunchBrowser(string site)
         {
@@ -490,98 +778,10 @@ namespace CalCompare
             }
         }
 
-        // Open the User's Guide in a web browser.
-        void UsersGuideToolStripMenuItemClick(object sender, EventArgs e)
-        {
-            LaunchBrowser("https://gmweb.gm.com/sites/CalSupport/Cal%20Compare");
-        }
-        
-        
-        void CalSupportToolsWebSiteToolStripMenuItemClick(object sender, EventArgs e)
-        {
-            LaunchBrowser("https://gmweb.gm.com/sites/CalSupport");
-        }
-
         void AboutToolStripMenuItemClick(object sender, EventArgs e)
         {
             AboutBox aboutBox = new AboutBox();
             aboutBox.Show();
         }
-
-        ////////////////////////////////////////////////////////////////////////
-        // Start of auto filtering stuff.
-        ////////////////////////////////////////////////////////////////////////
-
-        // Configures the autogenerated columns, replacing their header
-        // cells with AutoFilter header cells. 
-        //private void dataGridView1_BindingContextChanged(object sender, EventArgs e)
-//        void DataGridViewBindingContextChanged(object sender, EventArgs e)
-//        {
-//            // Continue only if the data source has been set.
-//            if (dataGridView.DataSource == null)
-//            {
-//                return;
-//            }
-//
-//            // Add the AutoFilter header cell to each column.
-//            foreach (DataGridViewColumn col in dataGridView.Columns)
-//            {
-//                col.HeaderCell = new
-//                    DataGridViewAutoFilterColumnHeaderCell(col.HeaderCell);
-//            }
-//
-//            // Format the OrderTotal column as currency. 
-//            dataGridView.Columns["OrderTotal"].DefaultCellStyle.Format = "c";
-//
-//            // Resize the columns to fit their contents.
-//            dataGridView.AutoResizeColumns();
-//        }
-
-//        // Displays the drop-down list when the user presses 
-//        // ALT+DOWN ARROW or ALT+UP ARROW.
-//        private void dataGridView1_KeyDown(object sender, KeyEventArgs e)
-//        {
-//            if (e.Alt && (e.KeyCode == Keys.Down || e.KeyCode == Keys.Up))
-//            {
-//                DataGridViewAutoFilterColumnHeaderCell filterCell =
-//                    dataGridView1.CurrentCell.OwningColumn.HeaderCell as
-//                    DataGridViewAutoFilterColumnHeaderCell;
-//                if (filterCell != null)
-//                {
-//                    filterCell.ShowDropDownList();
-//                    e.Handled = true;
-//                }
-//            }
-//        }
-//
-//        // Updates the filter status label. 
-//        private void dataGridView1_DataBindingComplete(object sender,
-//            DataGridViewBindingCompleteEventArgs e)
-//        {
-//            String filterStatus = DataGridViewAutoFilterColumnHeaderCell
-//                .GetFilterStatus(dataGridView1);
-//            if (String.IsNullOrEmpty(filterStatus))
-//            {
-//                showAllLabel.Visible = false;
-//                filterStatusLabel.Visible = false;
-//            }
-//            else
-//            {
-//                showAllLabel.Visible = true;
-//                filterStatusLabel.Visible = true;
-//                filterStatusLabel.Text = filterStatus;
-//            }
-//        }
-//
-//        // Clears the filter when the user clicks the "Show All" link
-//        // or presses ALT+A. 
-//        private void showAllLabel_Click(object sender, EventArgs e)
-//        {
-//            DataGridViewAutoFilterColumnHeaderCell.RemoveFilter(dataGridView1);
-//        }
-
-        ////////////////////////////////////////////////////////////////////////
-        // End of auto filtering stuff.
-        ////////////////////////////////////////////////////////////////////////
     }
 }
