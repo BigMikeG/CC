@@ -47,6 +47,7 @@ namespace CalCompare
             this.asXMLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.importToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.clearTheGridToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.usersGuideToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.calSupportToolsWebSiteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -64,7 +65,6 @@ namespace CalCompare
             this.csvSaveFileDialog = new System.Windows.Forms.SaveFileDialog();
             this.tabSaveFileDialog = new System.Windows.Forms.SaveFileDialog();
             this.importOpenFileDialog = new System.Windows.Forms.OpenFileDialog();
-            this.clearTheGridToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.statusStrip1.SuspendLayout();
@@ -96,14 +96,14 @@ namespace CalCompare
             // openToolStripMenuItem
             // 
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(119, 22);
             this.openToolStripMenuItem.Text = "Open...";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.OpenToolStripMenuItemClick);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(149, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(116, 6);
             // 
             // exportToolStripMenuItem
             // 
@@ -112,7 +112,7 @@ namespace CalCompare
                                     this.asTabDelimitedToolStripMenuItem,
                                     this.asXMLToolStripMenuItem});
             this.exportToolStripMenuItem.Name = "exportToolStripMenuItem";
-            this.exportToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.exportToolStripMenuItem.Size = new System.Drawing.Size(119, 22);
             this.exportToolStripMenuItem.Text = "Export";
             // 
             // asCommaDelimitedToolStripMenuItem
@@ -139,7 +139,7 @@ namespace CalCompare
             // importToolStripMenuItem
             // 
             this.importToolStripMenuItem.Name = "importToolStripMenuItem";
-            this.importToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.importToolStripMenuItem.Size = new System.Drawing.Size(119, 22);
             this.importToolStripMenuItem.Text = "Import...";
             this.importToolStripMenuItem.Click += new System.EventHandler(this.ImportClick);
             // 
@@ -150,6 +150,13 @@ namespace CalCompare
             this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             this.toolsToolStripMenuItem.Size = new System.Drawing.Size(48, 20);
             this.toolsToolStripMenuItem.Text = "Tools";
+            // 
+            // clearTheGridToolStripMenuItem
+            // 
+            this.clearTheGridToolStripMenuItem.Name = "clearTheGridToolStripMenuItem";
+            this.clearTheGridToolStripMenuItem.Size = new System.Drawing.Size(149, 22);
+            this.clearTheGridToolStripMenuItem.Text = "Clear The Grid";
+            this.clearTheGridToolStripMenuItem.Click += new System.EventHandler(this.ClearTheGridToolStripMenuItemClick);
             // 
             // helpToolStripMenuItem
             // 
@@ -201,6 +208,8 @@ namespace CalCompare
             this.dataGridView1.Size = new System.Drawing.Size(749, 299);
             this.dataGridView1.TabIndex = 1;
             this.dataGridView1.ColumnHeaderMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.DataGridView1ColumnHeaderMouseClick);
+            this.dataGridView1.DataBindingComplete += new System.Windows.Forms.DataGridViewBindingCompleteEventHandler(this.dataGridView1_DataBindingComplete);
+            this.dataGridView1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.dataGridView1_KeyDown);
             // 
             // statusStrip1
             // 
@@ -289,13 +298,6 @@ namespace CalCompare
             this.importOpenFileDialog.AddExtension = false;
             this.importOpenFileDialog.Filter = "CSV files|*.csv|Tab Delimited files|*.txt|XML files|*.xml";
             this.importOpenFileDialog.Title = "Import An Exported Cal Compare File";
-            // 
-            // clearTheGridToolStripMenuItem
-            // 
-            this.clearTheGridToolStripMenuItem.Name = "clearTheGridToolStripMenuItem";
-            this.clearTheGridToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.clearTheGridToolStripMenuItem.Text = "Clear The Grid";
-            this.clearTheGridToolStripMenuItem.Click += new System.EventHandler(this.ClearTheGridToolStripMenuItemClick);
             // 
             // MainForm
             // 

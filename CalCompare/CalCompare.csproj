@@ -47,9 +47,6 @@
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DataGridViewAutoFilter">
-      <HintPath>..\..\DataGridViewAutoFilter\DataGridViewAutoFilter\CS\DataGridViewAutoFilter\DataGridViewAutoFilter\bin\Debug\DataGridViewAutoFilter.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -70,6 +67,8 @@
     <Compile Include="AboutBox.Designer.cs">
       <DependentUpon>AboutBox.cs</DependentUpon>
     </Compile>
+    <Compile Include="FileActions.cs" />
+    <Compile Include="Help.cs" />
     <Compile Include="MainForm.cs" />
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
@@ -85,6 +84,12 @@
       <DependentUpon>MainForm.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\DataGridViewAutoFilter\DataGridViewAutoFilter\CS\DataGridViewAutoFilter\DataGridViewAutoFilter\DataGridViewAutoFilter.csproj">
+      <Project>{5A4B4B14-D3B5-4D54-80EC-0877C1E6E73A}</Project>
+      <Name>DataGridViewAutoFilter</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
 </Project>

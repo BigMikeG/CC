@@ -1,11 +1,11 @@
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\bin\Debug\CalCompare.exe
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\bin\Debug\CalCompare.pdb
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\bin\Debug\DataGridViewAutoFilter.dll
+C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\bin\Debug\DataGridViewAutoFilter.pdb
 C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\obj\Debug\ResolveAssemblyReference.cache
 C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\obj\Debug\CalCompare.AboutBox.resources
 C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\obj\Debug\CalCompare.MainForm.resources
 C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\obj\Debug\GenerateResource.read.1.tlog
 C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\obj\Debug\GenerateResource.write.1.tlog
-C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\bin\Debug\CalCompare.exe
-C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\bin\Debug\CalCompare.pdb
-C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\bin\Debug\DataGridViewAutoFilter.dll
-C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\bin\Debug\DataGridViewAutoFilter.pdb
 C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\obj\Debug\CalCompare.exe
 C:\Users\gzndq9\Documents\SharpDevelop Projects\CalCompare\CalCompare\obj\Debug\CalCompare.pdb

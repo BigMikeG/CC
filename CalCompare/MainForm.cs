@@ -16,8 +16,9 @@
  * Add file file4. It takes a lot longer than if you would have added all 4 the first time.
  * 
  * To Do:
- *  - Add AutoFiltering of the calset column from bookmarked pages.
- *  - Hide the part columns that are blank when filtering.
+ *  - When opening cal plots, or importing, always load to the fullTable then copy to the workTable.
+ *  - When diff or filter changed start from the full table and copy to the workingTable when finished.
+ *  - Always set the DataSource and Binding to the workTable.
  *  - Selection of hex or eng values via radio button.
  *  - Display values as ASCII characters.
  *  - String Arrays:
@@ -27,16 +28,22 @@
  *  - Make an option to hide Header and End cals.
  * 
  * Done:
- * - Horizontal scrollbar would not display. Had to right-click on the grid control in the designer and select "Bring To Front".
- * - If you click the the upper left corner of the grid (selects everything) and hit Ctrl-C, the grid is copied to the clipboard.
- *   You can then paste it into excel or where ever you like.
- * - Added Export and Import functionality.
+ *  - Hid the part columns that are blank when filtering.
+ *  - Replace the diffTable and filtTable with a single workingTable.
+ *  - Added AutoFiltering of the calset column.
+ *
+ *  - Added Export and Import functionality.
+ *  - Horizontal scrollbar would not display. Had to right-click on the grid control in the designer and select "Bring To Front".
+ *  - If you click the the upper left corner of the grid (selects everything) and hit Ctrl-C, the grid is copied to the clipboard.
+ *    You can then paste it into excel or where ever you like.
  */
 
+using DataGridViewAutoFilter;
+using MyFileActions;
+using MyHelp;
 using System;
 using System.Collections.Generic;
 using System.Data;                      // DataTable
-using System.Diagnostics;               // Process
 using System.Drawing;                   // Color
 using System.IO;                        // File, StreamReader
 using System.Security;                  // SecurityException
@@ -44,6 +51,8 @@ using System.Text;                      // StringBuilder
 using System.Text.RegularExpressions;   // Regex
 using System.Threading;                 // Sleep
 using System.Windows.Forms;
+
+//using System.Diagnostics;               // Process
 
 namespace CalCompare
 {
@@ -59,29 +68,30 @@ namespace CalCompare
         }
         
         private DataTable fullTable; // complete cal data table loaded from calplots
-        private DataTable diffTable; // only the rows with diffs
-        private DataTable filtTable; // used when something is typed in the filterTextBox
+        private DataTable workTable; // the working table
         
         void MainFormLoad(object sender, EventArgs e)
         {
+            dataGridView1.BindingContextChanged += new EventHandler(dataGridView1_BindingContextChanged);
+
             // All of the Calplot data that is read in will be stored in this table.
             // Then we will connect it to the DataGridView to make magic happen!
             fullTable = new DataTable("FullTable");
             
             // Mandatory columns. A column for each part will be added later for each calplot opened.
-            DataColumn Calset  = new DataColumn("Calset", typeof(string));
-            DataColumn Calname = new DataColumn("Calname", typeof(string));
-            DataColumn Units   = new DataColumn("Units", typeof(string));
-            DataColumn Diff    = new DataColumn("Diff", typeof(bool));
+            fullTable.Columns.Add("Calset", typeof(string));
+            fullTable.Columns.Add("Calname", typeof(string));
+            fullTable.Columns.Add("Units", typeof(string));
+            fullTable.Columns.Add("Diff", typeof(bool));
             
-            fullTable.Columns.Add(Calset);
-            fullTable.Columns.Add(Calname);
-            fullTable.Columns.Add(Units);
-            fullTable.Columns.Add(Diff);
-            
+            BindingSource dataSource = new BindingSource(fullTable, null);
+            dataGridView1.DataSource = dataSource;
+            dataGridView1.Visible = false; // hide the grid
+            dataGridView1.Columns["Diff"].Visible = false; // hide Diff col
+
             BirthdayCheck();
         }
-        
+
         /// <summary>
         /// Display a message if it is my birthday!
         /// </summary>
@@ -96,7 +106,7 @@ namespace CalCompare
         
         void DataGridView1ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
         {
-            HighlightDiffs(); // highlight any rows with diffs in the grid
+            HighlightDiffsInGrid(); // highlight any rows with diffs in the grid
         }
 
         /// <summary>
@@ -136,7 +146,8 @@ namespace CalCompare
                         }
 
                         // If the column doesn't exist in the table we need to add it.
-                        if (match == false) {
+                        if (match == false) 
+                        {
                             fullTable.Columns.Add(part, typeof(String));
                         }
 // End Faster                        
@@ -188,9 +199,7 @@ namespace CalCompare
                 
                 UpdateStatusLabel("Table was updated. Setting diff flags....");
                 SetDiffFlags(ref fullTable);     // check for differences
-                UpdateStatusLabel("Diff flags set. Creating diff table....");
-                CreateDiffTable(ref fullTable);  // create the diff table
-                UpdateStatusLabel("Diff table created. Displaying grid....");
+                UpdateStatusLabel("Diff flags set. Displaying grid....");
                 DiffOrFilterChanged(sender, e);  // display grid based on diff and filter settings
                 UpdateStatusLabel("Grid has been updated.");
     	    }
@@ -224,7 +233,6 @@ namespace CalCompare
         /// <param name="s"></param>
         void ParseLine(string s, int col)
         {
-            //int row;
        	    string name   = "";
         	string calset = "";
 
@@ -313,7 +321,7 @@ namespace CalCompare
         /// that don't have diffs are not added to the table.
         /// </summary>
         /// <param name="dt"></param>
-        void CreateDiffTable(ref DataTable dt)
+        DataTable CreateDiffTable(ref DataTable dt)
         {
             // Set the primary key of our main table.
             dt.PrimaryKey = new DataColumn[] {dt.Columns["Calname"]};
@@ -321,14 +329,16 @@ namespace CalCompare
             // Select the rows that have diffs.
             DataRow[] dr = dt.Select("Diff = 'true'");
 
-            diffTable = new DataTable("DiffTable"); // create the diff table
+            workTable = new DataTable("WorkingTable");
 
             // Did we find any rows with diffs?
             if (dr.Length > 0)
             {
                 // Copy the matching rows to the diff table.
-                diffTable = dr.CopyToDataTable();
+                workTable = dr.CopyToDataTable();
             }
+            
+            return workTable;
         }
         
         void UpdateProgressBar(int min, int max, int value)
@@ -353,16 +363,24 @@ namespace CalCompare
         /// <param name="e"></param>
         void DiffOrFilterChanged(object sender, EventArgs e)
         {
-            // Set which table to use (full or diff) based on the Diff checkbox.
-            DataTable dt = (diffCheckBox.Checked) ? diffTable : fullTable;
+            // Set which table to use (full or working) based on the Diff checkbox.
+            DataTable dt = (diffCheckBox.Checked) ? CreateDiffTable(ref fullTable) : fullTable;
+            
+            if (dt.Rows.Count == 0)
+            {
+                return;
+            }
             
             // Is there anything in the filter textbox.
             if (filterTextBox.Text == String.Empty) 
             {
                 // If the filter box is empty display the whole table.
-                dataGridView1.DataSource = dt; // render the DataGridView
+                BindingSource dataSource = new BindingSource(dt, null);
+                dataGridView1.DataSource = dataSource;
+                
                 dataGridView1.Columns["Diff"].Visible = false; // hide Diff col
-                HighlightDiffs();              // highlight rows with diffs in cal values
+                HighlightDiffsInGrid();              // highlight rows with diffs in cal values
+                HideEmptyColumns(ref dt);
             }
             else 
             {
@@ -373,17 +391,20 @@ namespace CalCompare
                 // in the filter text box.
                 DataRow[] dr = dt.Select("Calname like '%" + filterTextBox.Text + "%'");
     
-                filtTable = new DataTable("FilteredTable");
+                // Reset the working table
+                workTable = new DataTable("WorkingTable");
                 
                 if (dr.Length > 0)
                 {
-                    // Copy the matching rows to a temporary table.
-                    filtTable = dr.CopyToDataTable();
+                    // Copy the matching rows to the working table.
+                    workTable = dr.CopyToDataTable();
                     
                     // Send the temporary table to the grid.
-                    dataGridView1.DataSource = filtTable; // render the DataGridView
+                    BindingSource dataSource = new BindingSource(workTable, null);
+                    dataGridView1.DataSource = dataSource;
                     dataGridView1.Columns["Diff"].Visible = false; // hide Diff col
-                    HighlightDiffs();                     // highlight rows with diffs in cal values
+                    HighlightDiffsInGrid(); // highlight rows with diffs in cal values
+                    HideEmptyColumns(ref workTable);
                 }
                 else 
                 {
@@ -392,6 +413,25 @@ namespace CalCompare
             }
         }
 
+        /// <summary>
+        /// This function will hide any columns that have no value in them.
+        /// This comes into play when you use the filter box.
+        /// </summary>
+        /// <param name="table"></param>
+        void HideEmptyColumns(ref DataTable table)
+        {
+            for (int i = table.Columns.Count - 1; i > table.Columns.IndexOf("Diff"); i--)
+            {
+                string expression = "COUNT([" + table.Columns[i].ColumnName + "])";
+                string filter = "[" + table.Columns[i].ColumnName + "] <> ''";
+
+                if ((int)table.Compute(expression, filter) == 0)
+                {
+                    table.Columns.Remove(table.Columns[i]);
+                }
+            }
+        }
+        
         /// <summary>
         /// I would like to just display the header row here instead of making the grid invisible.
         /// </summary>
@@ -443,7 +483,7 @@ namespace CalCompare
             // End for (int row = 0; row < calsDataGridView.Rows.Count; row++) 
         }
 
-        void HighlightDiffs()
+        void HighlightDiffsInGrid()
         {
             // Grid needs to be visible or else the rows don't highlight.
             dataGridView1.Visible = true;  // make sure it is visible
@@ -480,42 +520,8 @@ namespace CalCompare
         
         void ExportAsCsvFileOk(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            ExportAsTextDelimited(csvSaveFileDialog.FileName, ",");
-        }
-        
-        // You can use any delimiter you like (, ; tab etc).
-        void ExportAsTextDelimited(string filename, string delimiter)
-        {
-            int i;
-            StringBuilder sb = new StringBuilder();
+            Export.AsTextDelimited(ref dataGridView1, csvSaveFileDialog.FileName, ",");
             
-            // Write the header row to the string builder.
-            // All but the last column needs a delimiter after it.
-            for (i = 0; i < (dataGridView1.Columns.Count - 1); i++)
-            {
-                sb.Append(dataGridView1.Columns[i].HeaderText + delimiter);
-            }
-            sb.Append(dataGridView1.Columns[dataGridView1.Columns.Count - 1].HeaderText); // last column header
-            sb.Append(Environment.NewLine);
-
-            // Now write each of the data rows to the string builder.
-            foreach (DataGridViewRow row in this.dataGridView1.Rows)
-            {
-                i = 0;
-                foreach (DataGridViewCell cell in row.Cells)
-                {
-                    if (i > 0) { sb.Append(delimiter); }
-                    sb.Append(cell.Value.ToString());
-                    i++;
-                }
-                sb.Append(Environment.NewLine);
-            }
-
-            // Write the string to a file.
-            using (StreamWriter writer = new StreamWriter(filename))
-            {
-                writer.Write(sb.ToString());
-            }        
         }
         
         /// <summary>
@@ -537,7 +543,7 @@ namespace CalCompare
         
         void ExportAsTabFileOk(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            ExportAsTextDelimited(tabSaveFileDialog.FileName, "\t");
+            Export.AsTextDelimited(ref dataGridView1, tabSaveFileDialog.FileName, "\t");
         }
         
         /// <summary>
@@ -647,10 +653,9 @@ namespace CalCompare
             {
                 ClearTheGrid();
                 fullTable = dt;
-                dataGridView1.DataSource = fullTable;
-                UpdateStatusLabel("Data was imported. Creating diff table....");
-                CreateDiffTable(ref fullTable);  // create the diff table
-                UpdateStatusLabel("Diff table created. Displaying grid....");
+                BindingSource dataSource = new BindingSource(fullTable, null);
+                dataGridView1.DataSource = dataSource;
+                UpdateStatusLabel("Data was imported. Displaying grid....");
                 DiffOrFilterChanged(null, null);  // display grid based on diff and filter settings
                 UpdateStatusLabel("Grid has been updated.");
             }
@@ -675,13 +680,10 @@ namespace CalCompare
                 }
                 else
                 {
+                    // Diff column exists. Copy impoted table to the full table.
                     fullTable = dt;
                     //fullTable.AcceptChanges(); // Do we need to do this?
-                    UpdateStatusLabel("Data was imported. Creating diff table....");
-                    
-                    CreateDiffTable(ref fullTable);  // create the diff table
-                    UpdateStatusLabel("Diff table created. Displaying grid....");
-                    
+                    UpdateStatusLabel("Data was imported. Displaying grid....");
                     DiffOrFilterChanged(null, null);  // display grid based on diff and filter settings
                     UpdateStatusLabel("Grid has been updated.");
                 }
@@ -704,8 +706,7 @@ namespace CalCompare
             dataGridView1.ColumnCount = 0;
             
             ClearTable(fullTable);
-            ClearTable(diffTable);
-            ClearTable(filtTable);
+            ClearTable(workTable);
         }
 
         private void ClearTable(DataTable table)
@@ -725,7 +726,7 @@ namespace CalCompare
                 catch (DataException e)
                 {
                     // Process exception and return.
-                    MessageBox.Show("Exception of type {0} occurred.", e.GetType().ToString());
+                    UpdateStatusLabel("Exception of type " + e.GetType().ToString() + " occured");
                 }
             }
         }
@@ -733,48 +734,19 @@ namespace CalCompare
         // Open the User's Guide in a web browser.
         void UsersGuideToolStripMenuItemClick(object sender, EventArgs e)
         {
-            LaunchBrowser("https://gmweb.gm.com/sites/CalSupport/Cal%20Compare");
+            string site = "https://gmweb.gm.com/sites/CalSupport/Cal%20Compare";
+            if (Browser.Launch(site))
+            {
+                UpdateStatusLabel("Unable to launch '" + site + "'.");
+            }
         }
         
         void CalSupportToolsWebSiteToolStripMenuItemClick(object sender, EventArgs e)
         {
-            LaunchBrowser("https://gmweb.gm.com/sites/CalSupport");
-        }
-
-        // Tries to open the User's Guide in a web browser.
-        void LaunchBrowser(string site)
-        {
-            bool error = false;
-           	string[] browsers = { "chrome.exe", "firefox.exe", "iexplore.exe" };
-            
-            Process browser = new Process();
-            browser.StartInfo.Arguments = site;
-            
-            // Look for a web browser.
-            foreach (string b in browsers) 
+            string site = "https://gmweb.gm.com/sites/CalSupport";
+            if (Browser.Launch(site))
             {
-                error = false;
-                browser.StartInfo.FileName = b;
-                try
-                {
-                    browser.Start();
-                }
-                catch
-                {
-                    error = true;
-                }
-                
-                if (error == false) 
-                {
-                    // The browser was launched without error, break out of the loop.
-                    break;
-                }
-            }
-
-            // Send a message to the status text box if we couldn't open a browser.
-            if (error == true)
-            {
-                UpdateStatusLabel(site);
+                UpdateStatusLabel("Unable to launch '" + site + "'.");
             }
         }
 
@@ -782,6 +754,84 @@ namespace CalCompare
         {
             AboutBox aboutBox = new AboutBox();
             aboutBox.Show();
+        }
+
+        // Configures the autogenerated columns, replacing their header
+        // cells with AutoFilter header cells. 
+        private void dataGridView1_BindingContextChanged(object sender, EventArgs e)
+        {
+            // Continue only if the data source has been set.
+            if (dataGridView1.DataSource == null)
+            {
+                return;
+            }
+
+            // Add the AutoFilter header cell to each column.
+            //foreach (DataGridViewColumn col in dataGridView1.Columns)
+            //{
+            //    col.HeaderCell = new
+            //        DataGridViewAutoFilterColumnHeaderCell(col.HeaderCell);
+            //}
+            DataGridViewColumn col = dataGridView1.Columns["Calset"];
+            col.HeaderCell = new DataGridViewAutoFilterColumnHeaderCell(col.HeaderCell);
+
+            // Format the OrderTotal column as currency. 
+            //dataGridView1.Columns["OrderTotal"].DefaultCellStyle.Format = "c";
+
+            // Resize the columns to fit their contents.
+            dataGridView1.AutoResizeColumns();
+        }
+
+        // Displays the drop-down list when the user presses
+        // ALT+DOWN ARROW or ALT+UP ARROW.
+        private void dataGridView1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Alt && (e.KeyCode == Keys.Down || e.KeyCode == Keys.Up))
+            {
+                DataGridViewAutoFilterColumnHeaderCell filterCell =
+                    dataGridView1.CurrentCell.OwningColumn.HeaderCell as
+                    DataGridViewAutoFilterColumnHeaderCell;
+                if (filterCell != null)
+                {
+                    filterCell.ShowDropDownList();
+                    e.Handled = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Updates the filter status label.
+        /// This function gets call when the autofilter header is clicked.
+        /// Need to heighlight the diffs.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void dataGridView1_DataBindingComplete(object sender,
+            DataGridViewBindingCompleteEventArgs e)
+        {
+            String filterStatus = DataGridViewAutoFilterColumnHeaderCell
+                .GetFilterStatus(dataGridView1);
+            if (String.IsNullOrEmpty(filterStatus))
+            {
+                showAllLabel.Visible = false;
+                filterStatusLabel.Visible = false;
+            }
+            else
+            {
+                showAllLabel.Visible = true;
+                filterStatusLabel.Visible = true;
+                filterStatusLabel.Text = filterStatus;
+            }
+            
+            // Highlight the diffs.
+            HighlightDiffsInGrid();
+        }
+
+        // Clears the filter when the user clicks the "Show All" link
+        // or presses ALT+A. 
+        private void showAllLabel_Click(object sender, EventArgs e)
+        {
+            DataGridViewAutoFilterColumnHeaderCell.RemoveFilter(dataGridView1);
         }
     }
 }
