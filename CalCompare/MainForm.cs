@@ -16,6 +16,7 @@
  * Add file file4. It takes a lot longer than if you would have added all 4 the first time.
  * 
  * To Do:
+ *  - This code "((DataTable)dataGridView1.DataSource).WriteXml" on line 569 doesn't work anymore.
  *  - When opening cal plots, or importing, always load to the fullTable then copy to the workTable.
  *  - When diff or filter changed start from the full table and copy to the workingTable when finished.
  *  - Always set the DataSource and Binding to the workTable.
@@ -77,6 +78,7 @@ namespace CalCompare
             // All of the Calplot data that is read in will be stored in this table.
             // Then we will connect it to the DataGridView to make magic happen!
             fullTable = new DataTable("FullTable");
+            workTable = new DataTable("WorkingTable");
             
             // Mandatory columns. A column for each part will be added later for each calplot opened.
             fullTable.Columns.Add("Calset", typeof(string));
@@ -84,7 +86,8 @@ namespace CalCompare
             fullTable.Columns.Add("Units", typeof(string));
             fullTable.Columns.Add("Diff", typeof(bool));
             
-            BindingSource dataSource = new BindingSource(fullTable, null);
+            workTable = fullTable;
+            BindingSource dataSource = new BindingSource(workTable, null);
             dataGridView1.DataSource = dataSource;
             dataGridView1.Visible = false; // hide the grid
             dataGridView1.Columns["Diff"].Visible = false; // hide Diff col
@@ -199,6 +202,7 @@ namespace CalCompare
                 
                 UpdateStatusLabel("Table was updated. Setting diff flags....");
                 SetDiffFlags(ref fullTable);     // check for differences
+                workTable = fullTable;           // copy the full table to the working table
                 UpdateStatusLabel("Diff flags set. Displaying grid....");
                 DiffOrFilterChanged(sender, e);  // display grid based on diff and filter settings
                 UpdateStatusLabel("Grid has been updated.");
@@ -321,24 +325,24 @@ namespace CalCompare
         /// that don't have diffs are not added to the table.
         /// </summary>
         /// <param name="dt"></param>
-        DataTable CreateDiffTable(ref DataTable dt)
+        DataTable CreateDiffTable()
         {
             // Set the primary key of our main table.
-            dt.PrimaryKey = new DataColumn[] {dt.Columns["Calname"]};
+            fullTable.PrimaryKey = new DataColumn[] {fullTable.Columns["Calname"]};
         	
             // Select the rows that have diffs.
-            DataRow[] dr = dt.Select("Diff = 'true'");
+            DataRow[] dr = fullTable.Select("Diff = 'true'");
 
-            workTable = new DataTable("WorkingTable");
-
+            DataTable dt = new DataTable("WorkingTable");
+            
             // Did we find any rows with diffs?
             if (dr.Length > 0)
             {
                 // Copy the matching rows to the diff table.
-                workTable = dr.CopyToDataTable();
+                dt = dr.CopyToDataTable();
             }
             
-            return workTable;
+            return dt;
         }
         
         void UpdateProgressBar(int min, int max, int value)
@@ -363,10 +367,10 @@ namespace CalCompare
         /// <param name="e"></param>
         void DiffOrFilterChanged(object sender, EventArgs e)
         {
-            // Set which table to use (full or working) based on the Diff checkbox.
-            DataTable dt = (diffCheckBox.Checked) ? CreateDiffTable(ref fullTable) : fullTable;
+            // Update the working table to just show diffs if the checkbox is checked.
+            workTable = (diffCheckBox.Checked) ? CreateDiffTable() : fullTable;
             
-            if (dt.Rows.Count == 0)
+            if (workTable.Rows.Count == 0)
             {
                 return;
             }
@@ -375,21 +379,16 @@ namespace CalCompare
             if (filterTextBox.Text == String.Empty) 
             {
                 // If the filter box is empty display the whole table.
-                BindingSource dataSource = new BindingSource(dt, null);
-                dataGridView1.DataSource = dataSource;
-                
-                dataGridView1.Columns["Diff"].Visible = false; // hide Diff col
-                HighlightDiffsInGrid();              // highlight rows with diffs in cal values
-                HideEmptyColumns(ref dt);
+                UpdateGrid();
             }
             else 
             {
                 // There is something in the filter box. Let's filter the rows.
-                dt.PrimaryKey = new DataColumn[] {dt.Columns["Calname"]};
+                workTable.PrimaryKey = new DataColumn[] {workTable.Columns["Calname"]};
             	
                 // Search the primary key column of the table for whatever is in entered 
                 // in the filter text box.
-                DataRow[] dr = dt.Select("Calname like '%" + filterTextBox.Text + "%'");
+                DataRow[] dr = workTable.Select("Calname like '%" + filterTextBox.Text + "%'");
     
                 // Reset the working table
                 workTable = new DataTable("WorkingTable");
@@ -398,13 +397,7 @@ namespace CalCompare
                 {
                     // Copy the matching rows to the working table.
                     workTable = dr.CopyToDataTable();
-                    
-                    // Send the temporary table to the grid.
-                    BindingSource dataSource = new BindingSource(workTable, null);
-                    dataGridView1.DataSource = dataSource;
-                    dataGridView1.Columns["Diff"].Visible = false; // hide Diff col
-                    HighlightDiffsInGrid(); // highlight rows with diffs in cal values
-                    HideEmptyColumns(ref workTable);
+                    UpdateGrid();
                 }
                 else 
                 {
@@ -413,6 +406,15 @@ namespace CalCompare
             }
         }
 
+        void UpdateGrid()
+        {
+            BindingSource dataSource = new BindingSource(workTable, null);
+            dataGridView1.DataSource = dataSource;
+            HighlightDiffsInGrid();              // highlight rows with diffs in cal values
+            HideEmptyColumns(ref workTable);
+            dataGridView1.AutoResizeColumns(); // Resize the columns to fit their contents.
+        }
+        
         /// <summary>
         /// This function will hide any columns that have no value in them.
         /// This comes into play when you use the filter box.
@@ -486,6 +488,7 @@ namespace CalCompare
         void HighlightDiffsInGrid()
         {
             // Grid needs to be visible or else the rows don't highlight.
+            dataGridView1.Columns["Diff"].Visible = false;
             dataGridView1.Visible = true;  // make sure it is visible
             
     	    for (int row = 0; row < dataGridView1.Rows.Count; row++) 
@@ -565,7 +568,7 @@ namespace CalCompare
         
         void ExportAsXmlFileOk(object sender, System.ComponentModel.CancelEventArgs e)
         {
-    	    ((DataTable)dataGridView1.DataSource).WriteXml(xmlSaveFileDialog.FileName, XmlWriteMode.WriteSchema);
+    	    workTable.WriteXml(xmlSaveFileDialog.FileName, XmlWriteMode.WriteSchema);
         }
         
         void ExportNullGridMessage()
@@ -653,8 +656,6 @@ namespace CalCompare
             {
                 ClearTheGrid();
                 fullTable = dt;
-                BindingSource dataSource = new BindingSource(fullTable, null);
-                dataGridView1.DataSource = dataSource;
                 UpdateStatusLabel("Data was imported. Displaying grid....");
                 DiffOrFilterChanged(null, null);  // display grid based on diff and filter settings
                 UpdateStatusLabel("Grid has been updated.");
@@ -778,8 +779,7 @@ namespace CalCompare
             // Format the OrderTotal column as currency. 
             //dataGridView1.Columns["OrderTotal"].DefaultCellStyle.Format = "c";
 
-            // Resize the columns to fit their contents.
-            dataGridView1.AutoResizeColumns();
+            dataGridView1.AutoResizeColumns(); // Resize the columns to fit their contents.
         }
 
         // Displays the drop-down list when the user presses
@@ -823,7 +823,7 @@ namespace CalCompare
                 filterStatusLabel.Text = filterStatus;
             }
             
-            // Highlight the diffs.
+            //HideEmptyColumns(ref workTable);
             HighlightDiffsInGrid();
         }
 
