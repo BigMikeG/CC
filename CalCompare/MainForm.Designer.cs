@@ -48,6 +48,7 @@ namespace CalCompare
             this.importToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearTheGridToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.autoResizeColumnsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.usersGuideToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.calSupportToolsWebSiteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -65,6 +66,7 @@ namespace CalCompare
             this.csvSaveFileDialog = new System.Windows.Forms.SaveFileDialog();
             this.tabSaveFileDialog = new System.Windows.Forms.SaveFileDialog();
             this.importOpenFileDialog = new System.Windows.Forms.OpenFileDialog();
+            this.hideEmptyColumnsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.statusStrip1.SuspendLayout();
@@ -146,7 +148,9 @@ namespace CalCompare
             // toolsToolStripMenuItem
             // 
             this.toolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-                                    this.clearTheGridToolStripMenuItem});
+                                    this.clearTheGridToolStripMenuItem,
+                                    this.autoResizeColumnsToolStripMenuItem,
+                                    this.hideEmptyColumnsToolStripMenuItem});
             this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             this.toolsToolStripMenuItem.Size = new System.Drawing.Size(48, 20);
             this.toolsToolStripMenuItem.Text = "Tools";
@@ -154,9 +158,16 @@ namespace CalCompare
             // clearTheGridToolStripMenuItem
             // 
             this.clearTheGridToolStripMenuItem.Name = "clearTheGridToolStripMenuItem";
-            this.clearTheGridToolStripMenuItem.Size = new System.Drawing.Size(149, 22);
+            this.clearTheGridToolStripMenuItem.Size = new System.Drawing.Size(187, 22);
             this.clearTheGridToolStripMenuItem.Text = "Clear The Grid";
             this.clearTheGridToolStripMenuItem.Click += new System.EventHandler(this.ClearTheGridToolStripMenuItemClick);
+            // 
+            // autoResizeColumnsToolStripMenuItem
+            // 
+            this.autoResizeColumnsToolStripMenuItem.Name = "autoResizeColumnsToolStripMenuItem";
+            this.autoResizeColumnsToolStripMenuItem.Size = new System.Drawing.Size(187, 22);
+            this.autoResizeColumnsToolStripMenuItem.Text = "Auto Resize Columns";
+            this.autoResizeColumnsToolStripMenuItem.Click += new System.EventHandler(this.AutoResizeColumnsToolStripMenuItemClick);
             // 
             // helpToolStripMenuItem
             // 
@@ -205,6 +216,7 @@ namespace CalCompare
             this.dataGridView1.Location = new System.Drawing.Point(0, 24);
             this.dataGridView1.Name = "dataGridView1";
             this.dataGridView1.ReadOnly = true;
+            this.dataGridView1.RowHeadersVisible = false;
             this.dataGridView1.Size = new System.Drawing.Size(749, 299);
             this.dataGridView1.TabIndex = 1;
             this.dataGridView1.ColumnHeaderMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.DataGridView1ColumnHeaderMouseClick);
@@ -299,6 +311,13 @@ namespace CalCompare
             this.importOpenFileDialog.Filter = "CSV files|*.csv|Tab Delimited files|*.txt|XML files|*.xml";
             this.importOpenFileDialog.Title = "Import An Exported Cal Compare File";
             // 
+            // hideEmptyColumnsToolStripMenuItem
+            // 
+            this.hideEmptyColumnsToolStripMenuItem.Name = "hideEmptyColumnsToolStripMenuItem";
+            this.hideEmptyColumnsToolStripMenuItem.Size = new System.Drawing.Size(187, 22);
+            this.hideEmptyColumnsToolStripMenuItem.Text = "Hide Empty Columns";
+            this.hideEmptyColumnsToolStripMenuItem.Click += new System.EventHandler(this.HideEmptyColumnsToolStripMenuItemClick);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -322,6 +341,8 @@ namespace CalCompare
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+        private System.Windows.Forms.ToolStripMenuItem hideEmptyColumnsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem autoResizeColumnsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearTheGridToolStripMenuItem;
         private System.Windows.Forms.OpenFileDialog importOpenFileDialog;
         private System.Windows.Forms.SaveFileDialog tabSaveFileDialog;

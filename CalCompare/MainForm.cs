@@ -16,10 +16,7 @@
  * Add file file4. It takes a lot longer than if you would have added all 4 the first time.
  * 
  * To Do:
- *  - This code "((DataTable)dataGridView1.DataSource).WriteXml" on line 569 doesn't work anymore.
- *  - When opening cal plots, or importing, always load to the fullTable then copy to the workTable.
- *  - When diff or filter changed start from the full table and copy to the workingTable when finished.
- *  - Always set the DataSource and Binding to the workTable.
+ *  - LOAD ALL CALPLOTS AND MAKE SURE THE FILTER BOX IS WORKING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  *  - Selection of hex or eng values via radio button.
  *  - Display values as ASCII characters.
  *  - String Arrays:
@@ -27,16 +24,23 @@
  *       (1/10 0) becomes (01/10 0).
  *    B) Group character arrays into a single string.
  *  - Make an option to hide Header and End cals.
+ *  - This function takes forever "dataGridView1.AutoResizeColumns()" when the grid has lots of data.
  * 
  * Done:
+ *  - Add a status message to the DiffOrFilter function when typing characters into filter box it can take awhile to update.
+ *  - Removing empty columns HideEmptyColumns can take a long time. Add a status message.
+ *    The remove column function takes 4 seconds for each column removed with all calplots loaded.
+ *  - Fixed - This code "((DataTable)dataGridView1.DataSource).WriteXml" on line 569 doesn't work anymore.
+ *  - When opening cal plots, or importing, always load to the masterTable then copy to the workingTable.
+ *  - When diff or filter changed start from the full table and copy to the workingTable when finished.
+ *  - Always set the DataSource and Binding to the workingTable.
  *  - Hid the part columns that are blank when filtering.
  *  - Replace the diffTable and filtTable with a single workingTable.
  *  - Added AutoFiltering of the calset column.
- *
  *  - Added Export and Import functionality.
  *  - Horizontal scrollbar would not display. Had to right-click on the grid control in the designer and select "Bring To Front".
  *  - If you click the the upper left corner of the grid (selects everything) and hit Ctrl-C, the grid is copied to the clipboard.
- *    You can then paste it into excel or where ever you like.
+ *    You can then paste it into excel or wherever you like.
  */
 
 using DataGridViewAutoFilter;
@@ -45,15 +49,13 @@ using MyHelp;
 using System;
 using System.Collections.Generic;
 using System.Data;                      // DataTable
+using System.Diagnostics;               // Stopwatch
 using System.Drawing;                   // Color
 using System.IO;                        // File, StreamReader
 using System.Security;                  // SecurityException
 using System.Text;                      // StringBuilder
 using System.Text.RegularExpressions;   // Regex
-using System.Threading;                 // Sleep
 using System.Windows.Forms;
-
-//using System.Diagnostics;               // Process
 
 namespace CalCompare
 {
@@ -68,8 +70,9 @@ namespace CalCompare
             InitializeComponent();
         }
         
-        private DataTable fullTable; // complete cal data table loaded from calplots
-        private DataTable workTable; // the working table
+        private DataTable masterTable; // complete cal data table loaded from calplots
+        private DataTable workingTable; // the working table
+        private bool gridUpdateFinished = false;
         
         void MainFormLoad(object sender, EventArgs e)
         {
@@ -77,17 +80,20 @@ namespace CalCompare
 
             // All of the Calplot data that is read in will be stored in this table.
             // Then we will connect it to the DataGridView to make magic happen!
-            fullTable = new DataTable("FullTable");
-            workTable = new DataTable("WorkingTable");
+            masterTable = new DataTable("MasterTable");
+            workingTable = new DataTable("WorkingTable");
             
             // Mandatory columns. A column for each part will be added later for each calplot opened.
-            fullTable.Columns.Add("Calset", typeof(string));
-            fullTable.Columns.Add("Calname", typeof(string));
-            fullTable.Columns.Add("Units", typeof(string));
-            fullTable.Columns.Add("Diff", typeof(bool));
+            masterTable.Columns.Add("Calset", typeof(string));
+            masterTable.Columns.Add("Calname", typeof(string));
+            masterTable.Columns.Add("Units", typeof(string));
+            masterTable.Columns.Add("Diff", typeof(bool));
             
-            workTable = fullTable;
-            BindingSource dataSource = new BindingSource(workTable, null);
+            //workingTable = masterTable;
+            workingTable = masterTable.Copy();
+            workingTable.TableName = "WorkingTable";
+            
+            BindingSource dataSource = new BindingSource(workingTable, null);
             dataGridView1.DataSource = dataSource;
             dataGridView1.Visible = false; // hide the grid
             dataGridView1.Columns["Diff"].Visible = false; // hide Diff col
@@ -122,6 +128,7 @@ namespace CalCompare
             string lastFile = "";
             int numFiles = 0; // the number of files successfully opened
             
+            gridUpdateFinished = false;
             UpdateProgressBar(0, 0, 0);
             DialogResult result = openFileDialog1.ShowDialog(); // Show the dialog.
 
@@ -141,8 +148,8 @@ namespace CalCompare
                         // Check if a column header already exists.
                         bool match = false;
                         int col;
-                        for (col = (fullTable.Columns.IndexOf("Diff") + 1); col < fullTable.Columns.Count; col++) {
-                            if (part == fullTable.Columns[col].ColumnName) {
+                        for (col = (masterTable.Columns.IndexOf("Diff") + 1); col < masterTable.Columns.Count; col++) {
+                            if (part == masterTable.Columns[col].ColumnName) {
                                 match = true;
                                 break;
                             }
@@ -151,7 +158,7 @@ namespace CalCompare
                         // If the column doesn't exist in the table we need to add it.
                         if (match == false) 
                         {
-                            fullTable.Columns.Add(part, typeof(String));
+                            masterTable.Columns.Add(part, typeof(String));
                         }
 // End Faster                        
                 	    // Open the file and copy the cal lines to the grid.
@@ -201,11 +208,13 @@ namespace CalCompare
                 }
                 
                 UpdateStatusLabel("Table was updated. Setting diff flags....");
-                SetDiffFlags(ref fullTable);     // check for differences
-                workTable = fullTable;           // copy the full table to the working table
+                SetDiffFlags(ref masterTable);              // check for differences
+                workingTable = masterTable.Copy();          // copy the full table to the working table
+                workingTable.TableName = "WorkingTable";
                 UpdateStatusLabel("Diff flags set. Displaying grid....");
-                DiffOrFilterChanged(sender, e);  // display grid based on diff and filter settings
+                DiffOrFilterChanged(sender, e);             // display grid based on diff and filter settings
                 UpdateStatusLabel("Grid has been updated.");
+                gridUpdateFinished = true;
     	    }
     	    else
     	    {
@@ -271,25 +280,24 @@ namespace CalCompare
                 string units = Regex.Replace(fields[3], "\"", String.Empty);
 
                 // Set the primary key of our main table.
-                fullTable.PrimaryKey = new DataColumn[] {fullTable.Columns["Calname"]};
+                masterTable.PrimaryKey = new DataColumn[] {masterTable.Columns["Calname"]};
             	
-                if (fullTable.Rows.Find(name) == null)
+                if (masterTable.Rows.Find(name) == null)
                 {
                     // Cal name is not in the table. Add a new row and populate it.
-                    DataRow dr = fullTable.NewRow();
+                    DataRow dr = masterTable.NewRow();
                     dr["Calset"] = calset;
                     dr["Calname"] = name;
                     dr["Units"] = units;
                     dr["Diff"] = false;
                     dr[col] = fields[1]; // set the hex value
-                    fullTable.Rows.Add(dr);
+                    masterTable.Rows.Add(dr);
                 }
                 else
                 {
-                    fullTable.Rows.Find(name)[col] = fields[1];
+                    // The cal name exists. And the cal value for the new part.
+                    masterTable.Rows.Find(name)[col] = fields[1];
                 }
-                
-                //HideHeaderCals(name);
             }
             else
             {
@@ -298,6 +306,10 @@ namespace CalCompare
             }
         }
 
+        /// <summary>
+        /// This function removes the rows from the table that contain "HEADER_" in the Calname.
+        /// </summary>
+        /// <param name="s"></param>
         void HideHeaderCals(string s)
         {
             // If the the cal name starts with "HEADER_" don't print it.
@@ -321,17 +333,17 @@ namespace CalCompare
         }
 
         /// <summary>
-        /// This function creates a table whose rows have diffs. Any row from the incoming table
-        /// that don't have diffs are not added to the table.
+        /// This function creates a table whose rows have diffs. Any rows from the incoming table
+        /// that don't have diffs are not added to the new table.
         /// </summary>
         /// <param name="dt"></param>
         DataTable CreateDiffTable()
         {
             // Set the primary key of our main table.
-            fullTable.PrimaryKey = new DataColumn[] {fullTable.Columns["Calname"]};
+            masterTable.PrimaryKey = new DataColumn[] {masterTable.Columns["Calname"]};
         	
             // Select the rows that have diffs.
-            DataRow[] dr = fullTable.Select("Diff = 'true'");
+            DataRow[] dr = masterTable.Select("Diff = 'true'");
 
             DataTable dt = new DataTable("WorkingTable");
             
@@ -345,20 +357,6 @@ namespace CalCompare
             return dt;
         }
         
-        void UpdateProgressBar(int min, int max, int value)
-        {
-            toolStripProgressBar1.Minimum = min;
-            toolStripProgressBar1.Maximum = max;
-            toolStripProgressBar1.Value = value;
-            this.Refresh(); // need to refresh to update the progress bar   
-        }
-        
-        void UpdateStatusLabel(string s)
-        {
-            toolStripStatusLabel1.Text = DateTime.Now + ": " + s;
-            this.Refresh(); // need to refresh to update the status label   
-        }
-        
         /// <summary>
         /// This function is called when the diff checkbox is clicked or the filter textbox text.
         /// This function is very slow. How to speed up?
@@ -367,10 +365,12 @@ namespace CalCompare
         /// <param name="e"></param>
         void DiffOrFilterChanged(object sender, EventArgs e)
         {
-            // Update the working table to just show diffs if the checkbox is checked.
-            workTable = (diffCheckBox.Checked) ? CreateDiffTable() : fullTable;
             
-            if (workTable.Rows.Count == 0)
+            // Update the working table to just show diffs if the checkbox is checked.
+            workingTable = (diffCheckBox.Checked) ? CreateDiffTable() : masterTable;
+            workingTable.TableName = "WorkingTable";
+            
+            if (workingTable.Rows.Count == 0)
             {
                 return;
             }
@@ -378,60 +378,96 @@ namespace CalCompare
             // Is there anything in the filter textbox.
             if (filterTextBox.Text == String.Empty) 
             {
-                // If the filter box is empty display the whole table.
-                UpdateGrid();
+                UpdateGrid(); // filter box is empty, display the whole table
             }
             else 
             {
-                // There is something in the filter box. Let's filter the rows.
-                workTable.PrimaryKey = new DataColumn[] {workTable.Columns["Calname"]};
+                // There is something in the filter box. 
+                UpdateStatusLabel("Filtering Calname on '" + filterTextBox.Text + "', please wait...");
+
+                // Let's filter the rows.
+                workingTable.PrimaryKey = new DataColumn[] {workingTable.Columns["Calname"]};
             	
                 // Search the primary key column of the table for whatever is in entered 
                 // in the filter text box.
-                DataRow[] dr = workTable.Select("Calname like '%" + filterTextBox.Text + "%'");
+                DataRow[] dr = workingTable.Select("Calname like '%" + filterTextBox.Text + "%'");
     
                 // Reset the working table
-                workTable = new DataTable("WorkingTable");
+                workingTable = new DataTable("WorkingTable");
                 
                 if (dr.Length > 0)
                 {
                     // Copy the matching rows to the working table.
-                    workTable = dr.CopyToDataTable();
+                    workingTable = dr.CopyToDataTable();
                     UpdateGrid();
+                    UpdateStatusLabel("Displaying rows that contain '" + filterTextBox.Text + "' in the Calname.");
                 }
                 else 
                 {
                     DisplayHeaderRow();
+                    UpdateStatusLabel("No Calname contains '" + filterTextBox.Text + "'.");
                 }
             }
         }
 
         void UpdateGrid()
         {
-            BindingSource dataSource = new BindingSource(workTable, null);
+            BindingSource dataSource = new BindingSource(workingTable, null);
             dataGridView1.DataSource = dataSource;
             HighlightDiffsInGrid();              // highlight rows with diffs in cal values
-            HideEmptyColumns(ref workTable);
-            dataGridView1.AutoResizeColumns(); // Resize the columns to fit their contents.
+            //HideEmptyColumns(ref workingTable);
+            AutoResizeFirstThreeColumns();
+        }
+        
+        // This function resizes the Calset, Calname, and Units columns.
+        // Function dataGridView1.AutoResizeColumns() can take a really long time
+        // if you have lots of calplots loaded.
+        void AutoResizeFirstThreeColumns()
+        {
+            dataGridView1.Columns["Calset"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridView1.Columns["Calname"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridView1.Columns["Units"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
         }
         
         /// <summary>
         /// This function will hide any columns that have no value in them.
         /// This comes into play when you use the filter box.
+        /// I think the Compute takes a long time.
+        /// Update the progress bar so we can see what is happening.
         /// </summary>
         /// <param name="table"></param>
         void HideEmptyColumns(ref DataTable table)
         {
-            for (int i = table.Columns.Count - 1; i > table.Columns.IndexOf("Diff"); i--)
+            // Is there anything in the table?
+            if (table.Rows.Count > 0)
             {
-                string expression = "COUNT([" + table.Columns[i].ColumnName + "])";
-                string filter = "[" + table.Columns[i].ColumnName + "] <> ''";
-
-                if ((int)table.Compute(expression, filter) == 0)
+                UpdateStatusLabel("Removing empty columns. This can take an excruciatingly long time, please wait...");
+                
+                int lastIndex = table.Columns.Count - 1;
+                int max = lastIndex - table.Columns.IndexOf("Diff") - 1;
+                
+                for (int i = lastIndex; i > table.Columns.IndexOf("Diff"); i--)
                 {
-                    table.Columns.Remove(table.Columns[i]);
+                    int val = lastIndex - i;
+                    UpdateProgressBar(0, max, val);
+                    UpdateStatusLabel("Checking column " + table.Columns[i].ColumnName + "...");
+                    //MessageBox.Show("Column: " + i.ToString());
+                    
+                    string expression = "COUNT([" + table.Columns[i].ColumnName + "])";
+                    string filter     = "[" + table.Columns[i].ColumnName + "] <> ''";
+    
+                    int count = (int)table.Compute(expression, filter);
+                    if (count == 0)
+                    {
+                        UpdateStatusLabel("Removing column " + table.Columns[i].ColumnName + "...");
+                        table.Columns.Remove(table.Columns[i]);
+                    }
                 }
+                // End for (int i = table.Columns.Count - 1; i > table.Columns.IndexOf("Diff"); i--)
+                
+                UpdateStatusLabel("Empty columns were removed.");
             }
+            // End if (table.Rows.Count > 0) 
         }
         
         /// <summary>
@@ -504,6 +540,58 @@ namespace CalCompare
             }
         }
 
+        void ClearTheGrid()
+        {
+            dataGridView1.DataSource = null;
+            dataGridView1.RowCount = 0;
+            dataGridView1.ColumnCount = 0;
+            
+            ClearTable(masterTable);
+            ClearTable(workingTable);
+        }
+
+        private void ClearTable(DataTable table)
+        {
+            if (table != null) 
+            {
+                try
+                {
+                    table.Clear();
+
+                    // Remove all part columns.
+                    for (int i = (table.Columns.Count - 1); i > table.Columns.IndexOf("Diff"); i--)
+                    {
+                        table.Columns.RemoveAt(i);
+                    }
+                }
+                catch (DataException e)
+                {
+                    // Process exception and return.
+                    UpdateStatusLabel("Exception of type " + e.GetType().ToString() + " occured");
+                }
+            }
+        }
+
+        #region status
+        
+        void UpdateProgressBar(int min, int max, int val)
+        {
+            toolStripProgressBar1.Minimum = min;
+            toolStripProgressBar1.Maximum = max;
+            toolStripProgressBar1.Value = val;
+            this.Refresh(); // need to refresh to update the progress bar   
+        }
+        
+        void UpdateStatusLabel(string s)
+        {
+            toolStripStatusLabel1.Text = DateTime.Now + ": " + s;
+            this.Refresh(); // need to refresh to update the status label   
+        }
+        
+        #endregion status
+        
+        #region export - import
+
         /// <summary>
         /// Export as comma delimited text file (.csv).
         /// </summary>
@@ -568,7 +656,7 @@ namespace CalCompare
         
         void ExportAsXmlFileOk(object sender, System.ComponentModel.CancelEventArgs e)
         {
-    	    workTable.WriteXml(xmlSaveFileDialog.FileName, XmlWriteMode.WriteSchema);
+    	    workingTable.WriteXml(xmlSaveFileDialog.FileName, XmlWriteMode.WriteSchema);
         }
         
         void ExportNullGridMessage()
@@ -620,6 +708,8 @@ namespace CalCompare
             bool diffColFound = false;
             DataTable dt = new DataTable();
     
+            gridUpdateFinished = false;
+            
             try
             {
                 using (StreamReader sr = new StreamReader(filename))
@@ -655,7 +745,7 @@ namespace CalCompare
             if (diffColFound)
             {
                 ClearTheGrid();
-                fullTable = dt;
+                masterTable = dt;
                 UpdateStatusLabel("Data was imported. Displaying grid....");
                 DiffOrFilterChanged(null, null);  // display grid based on diff and filter settings
                 UpdateStatusLabel("Grid has been updated.");
@@ -664,6 +754,8 @@ namespace CalCompare
             {
                 UpdateStatusLabel("Import failed. I only import files that I exported.");
             }
+            
+            gridUpdateFinished = true;
         }
             
         void ImportFromXml()
@@ -682,8 +774,8 @@ namespace CalCompare
                 else
                 {
                     // Diff column exists. Copy impoted table to the full table.
-                    fullTable = dt;
-                    //fullTable.AcceptChanges(); // Do we need to do this?
+                    masterTable = dt;
+                    //masterTable.AcceptChanges(); // Do we need to do this?
                     UpdateStatusLabel("Data was imported. Displaying grid....");
                     DiffOrFilterChanged(null, null);  // display grid based on diff and filter settings
                     UpdateStatusLabel("Grid has been updated.");
@@ -695,42 +787,32 @@ namespace CalCompare
             }
         }
 
+        #endregion export - import
+        
+        #region tools: ClearTheGridToolStripMenuItemClick
         void ClearTheGridToolStripMenuItemClick(object sender, EventArgs e)
         {
             ClearTheGrid();
         }
         
-        void ClearTheGrid()
+        void AutoResizeColumnsToolStripMenuItemClick(object sender, EventArgs e)
         {
-            dataGridView1.DataSource = null;
-            dataGridView1.RowCount = 0;
-            dataGridView1.ColumnCount = 0;
-            
-            ClearTable(fullTable);
-            ClearTable(workTable);
-        }
-
-        private void ClearTable(DataTable table)
-        {
-            if (table != null) 
+            if (dataGridView1.Rows.Count > 0)
             {
-                try
-                {
-                    table.Clear();
-
-                    // Remove all part columns.
-                    for (int i = (table.Columns.Count - 1); i > table.Columns.IndexOf("Diff"); i--)
-                    {
-                        table.Columns.RemoveAt(i);
-                    }
-                }
-                catch (DataException e)
-                {
-                    // Process exception and return.
-                    UpdateStatusLabel("Exception of type " + e.GetType().ToString() + " occured");
-                }
+                UpdateStatusLabel("Resizing the columns. This can take awhile. Please be patient...");
+                dataGridView1.AutoResizeColumns(); // Resize the columns to fit their contents.
+                UpdateStatusLabel("Columns were auto-resized.");
             }
         }
+        
+        void HideEmptyColumnsToolStripMenuItemClick(object sender, EventArgs e)
+        {
+            HideEmptyColumns(ref workingTable);
+        }
+        
+        #endregion tools
+        
+        #region help: UsersGuideToolStripMenuItemClick, CalSupportToolsWebSiteToolStripMenuItemClick, AboutToolStripMenuItemClick
 
         // Open the User's Guide in a web browser.
         void UsersGuideToolStripMenuItemClick(object sender, EventArgs e)
@@ -757,6 +839,10 @@ namespace CalCompare
             aboutBox.Show();
         }
 
+        #endregion help
+
+        #region auto-filter: dataGridView1_BindingContextChanged, dataGridView1_KeyDown, dataGridView1_DataBindingComplete, showAllLabel_Click
+
         // Configures the autogenerated columns, replacing their header
         // cells with AutoFilter header cells. 
         private void dataGridView1_BindingContextChanged(object sender, EventArgs e)
@@ -779,7 +865,8 @@ namespace CalCompare
             // Format the OrderTotal column as currency. 
             //dataGridView1.Columns["OrderTotal"].DefaultCellStyle.Format = "c";
 
-            dataGridView1.AutoResizeColumns(); // Resize the columns to fit their contents.
+            //dataGridView1.AutoResizeColumns(); // Resize the columns to fit their contents.
+            AutoResizeFirstThreeColumns();
         }
 
         // Displays the drop-down list when the user presses
@@ -802,15 +889,13 @@ namespace CalCompare
         /// <summary>
         /// Updates the filter status label.
         /// This function gets call when the autofilter header is clicked.
-        /// Need to heighlight the diffs.
+        /// This function gets called whenever a row is added to the grid.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void dataGridView1_DataBindingComplete(object sender,
-            DataGridViewBindingCompleteEventArgs e)
+        private void dataGridView1_DataBindingComplete(object sender, DataGridViewBindingCompleteEventArgs e)
         {
-            String filterStatus = DataGridViewAutoFilterColumnHeaderCell
-                .GetFilterStatus(dataGridView1);
+            String filterStatus = DataGridViewAutoFilterColumnHeaderCell.GetFilterStatus(dataGridView1);
             if (String.IsNullOrEmpty(filterStatus))
             {
                 showAllLabel.Visible = false;
@@ -823,8 +908,14 @@ namespace CalCompare
                 filterStatusLabel.Text = filterStatus;
             }
             
-            //HideEmptyColumns(ref workTable);
-            HighlightDiffsInGrid();
+            if (gridUpdateFinished)
+            {
+                // This doesn't hide the empty columns because the working table still has the column
+                // even when the auto-filter hides the rows that contain data.
+                //HideEmptyColumns(ref workingTable);
+                
+                HighlightDiffsInGrid();
+            }
         }
 
         // Clears the filter when the user clicks the "Show All" link
@@ -833,5 +924,7 @@ namespace CalCompare
         {
             DataGridViewAutoFilterColumnHeaderCell.RemoveFilter(dataGridView1);
         }
-    }
+
+        #endregion auto-filter
+   }
 }
