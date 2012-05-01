@@ -85,11 +85,5 @@
       <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\DataGridViewAutoFilter\DataGridViewAutoFilter\CS\DataGridViewAutoFilter\DataGridViewAutoFilter\DataGridViewAutoFilter.csproj">
-      <Project>{5A4B4B14-D3B5-4D54-80EC-0877C1E6E73A}</Project>
-      <Name>DataGridViewAutoFilter</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
 </Project>
