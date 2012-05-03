@@ -151,7 +151,7 @@ namespace CalCompare
                     {
                         // Extract the part number from the filename (removing leading cp_ and extension).
                         string part = Regex.Replace(Path.GetFileNameWithoutExtension(file), "(^cp_)", String.Empty);
-// I bet this can be made faster
+
                         // Check if a column header already exists.
                         bool match = false;
                         int col;
@@ -167,8 +167,8 @@ namespace CalCompare
                         {
                             masterTable.Columns.Add(part, typeof(String));
                         }
-// End Faster                        
-                	    // Open the file and copy the cal lines to the grid.
+
+                        // Open the file and copy the cal lines to the grid.
                         using (StreamReader r = new StreamReader(file))
                         {
                             // Use while != null pattern for loop
@@ -251,62 +251,78 @@ namespace CalCompare
         /// <param name="s"></param>
         void ParseLine(string s, int col)
         {
-       	    string calname = String.Empty;
+       	    bool error = false;
+            string calname = String.Empty;
         	string calset  = String.Empty;
 
             // Remove the trailing semicolon.
             s = Regex.Replace(s, ";$", String.Empty);
 
-            // Split string on commas.
-            string[] fields = s.Split(',');
+            // Split string on "=".
+            string[] fields = s.Split('=');
             
-            // Verify that there are 4 fields (separated by 3 commas).
-            if (fields.Length == 4)
+            // Verify that there are 2 fields.
+            if (fields.Length == 2)
             {
-                // Remove everything after the equal sign in the calibration name.
-                string CalNameWhole = Regex.Replace(fields[0], " =.*", String.Empty);
-
                 // Separate the calset (everything up to the first dot) from the name.
-            	Match match = Regex.Match(CalNameWhole, @"(.*?)\.(.*)");
+                Match match = Regex.Match(fields[0], @"(.*?)\.(.*)");
             
             	// Here we check the Match instance.
             	if (match.Success)
             	{
             	    // Finally, we get the Group value and display it.
-            	    calset  = match.Groups[1].Value;
+            	    calset  = match.Groups[1].Value.Trim();
             	    calname = match.Groups[2].Value.Trim();
+
+                    // Split string on commas.
+                    string[] data = fields[1].Split(',');
+                    
+                    // Verify that there are 4 fields (separated by 3 commas).
+                    if (data.Length == 4)
+                    {
+                        // Removing leading and trailing quotes from the Units.
+                        //string units = Regex.Replace(data[3], "\"", String.Empty);
+        
+                        // Set the primary key of our main table.
+                        masterTable.PrimaryKey = new DataColumn[] {masterTable.Columns["Calname"]};
+                    	
+                        if (masterTable.Rows.Find(calname) == null)
+                        {
+                            // Cal name is not in the table. Add a new row and populate it.
+                            DataRow dr = masterTable.NewRow();
+                            dr["Calset"] = calset;
+                            dr["Calname"] = calname;
+                            //dr["Units"] = units;
+                            //char[] trimChars = {'"'};
+                            //dr["units"] = data[3].Trim(trimChars);
+                            dr["units"] = data[3].Trim(' ', '"');
+                            dr["Diff"] = false;
+                            dr[col] = data[1]; // set the hex value
+                            masterTable.Rows.Add(dr);
+                        }
+                        else
+                        {
+                            // The cal name exists. And the cal value for the new part.
+                            masterTable.Rows.Find(calname)[col] = data[1];
+                        }
+                    }
+                    else
+                    {
+                        error = true; // should have been 3 values and units
+                    }
             	}
             	else 
             	{
-            	    return; // there is a problem with the format of the cal name
+            	    error = true; // match failed
             	}
-                
-                // Removing leading and trailing quotes from the Units.
-                string units = Regex.Replace(fields[3], "\"", String.Empty);
-
-                // Set the primary key of our main table.
-                masterTable.PrimaryKey = new DataColumn[] {masterTable.Columns["Calname"]};
-            	
-                if (masterTable.Rows.Find(calname) == null)
-                {
-                    // Cal name is not in the table. Add a new row and populate it.
-                    DataRow dr = masterTable.NewRow();
-                    dr["Calset"] = calset;
-                    dr["Calname"] = calname;
-                    dr["Units"] = units;
-                    dr["Diff"] = false;
-                    dr[col] = fields[1]; // set the hex value
-                    masterTable.Rows.Add(dr);
-                }
-                else
-                {
-                    // The cal name exists. And the cal value for the new part.
-                    masterTable.Rows.Find(calname)[col] = fields[1];
-                }
             }
             else
             {
-                // Not the correct amount of commas. There is an error in the line.
+                error = true; // should have been a single equal sign
+            }
+            
+            if (error)
+            {
                 UpdateStatusLabel("Error, the format of the line is wrong: " + s);
             }
         }
