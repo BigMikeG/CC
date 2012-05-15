@@ -69,6 +69,8 @@ namespace CalCompare
             this.tabSaveFileDialog = new System.Windows.Forms.SaveFileDialog();
             this.importOpenFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.filterTimer = new System.Windows.Forms.Timer(this.components);
+            this.hexRadioButton = new System.Windows.Forms.RadioButton();
+            this.engRadioButton = new System.Windows.Forms.RadioButton();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.statusStrip1.SuspendLayout();
@@ -324,11 +326,36 @@ namespace CalCompare
             this.filterTimer.Interval = 1000;
             this.filterTimer.Tick += new System.EventHandler(this.FilterTimerTick);
             // 
+            // hexRadioButton
+            // 
+            this.hexRadioButton.Checked = true;
+            this.hexRadioButton.Location = new System.Drawing.Point(379, 0);
+            this.hexRadioButton.Name = "hexRadioButton";
+            this.hexRadioButton.Size = new System.Drawing.Size(46, 24);
+            this.hexRadioButton.TabIndex = 7;
+            this.hexRadioButton.TabStop = true;
+            this.hexRadioButton.Text = "Hex";
+            this.hexRadioButton.UseVisualStyleBackColor = true;
+            this.hexRadioButton.CheckedChanged += new System.EventHandler(this.UnitTypeRadioButtonCheckedChanged);
+            // 
+            // engRadioButton
+            // 
+            this.engRadioButton.Enabled = false;
+            this.engRadioButton.Location = new System.Drawing.Point(432, 0);
+            this.engRadioButton.Name = "engRadioButton";
+            this.engRadioButton.Size = new System.Drawing.Size(46, 24);
+            this.engRadioButton.TabIndex = 8;
+            this.engRadioButton.Text = "Eng";
+            this.engRadioButton.UseVisualStyleBackColor = true;
+            this.engRadioButton.CheckedChanged += new System.EventHandler(this.UnitTypeRadioButtonCheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(749, 345);
+            this.Controls.Add(this.engRadioButton);
+            this.Controls.Add(this.hexRadioButton);
             this.Controls.Add(this.dataGridView1);
             this.Controls.Add(this.filterTextBox);
             this.Controls.Add(this.diffCheckBox);
@@ -348,6 +375,8 @@ namespace CalCompare
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+        private System.Windows.Forms.RadioButton engRadioButton;
+        private System.Windows.Forms.RadioButton hexRadioButton;
         private System.Windows.Forms.Timer filterTimer;
         private System.Windows.Forms.ToolStripMenuItem hideEmptyColumnsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem autoResizeColumnsToolStripMenuItem;

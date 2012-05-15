@@ -10,11 +10,6 @@
  * Column: 0       1        2      3              4
  *         Calset, Calname, Units, Diff Detected, Hex Val for calplot file 1, Hex Val for calplot file 2, ...
  *
- * 
- * If you add files (to an existing grid) it seems to load slowly.
- * For instance load file1, file2, file3. They load fast.
- * Add file file4. It takes a lot longer than if you would have added all 4 the first time.
- * 
  * Verification:
  *  - Verify these 3 things.
  *  1 If you load one calplot and check the diff checkbox, nothing should display.
@@ -140,6 +135,7 @@ namespace CalCompare
     	    {
     	        UpdateStatusLabel("Reading files and loading to the data table...");
     	        
+    	        // Make the grid invisible (it updates faster that way). And hide the Diff column if it exists. 
     	        dataGridView1.Visible = false;
     	        if (dataGridView1.Columns["Diff"] != null)
     	           dataGridView1.Columns["Diff"].Visible = false;
@@ -155,8 +151,10 @@ namespace CalCompare
                         // Check if a column header already exists.
                         bool match = false;
                         int col;
-                        for (col = (masterTable.Columns.IndexOf("Diff") + 1); col < masterTable.Columns.Count; col++) {
-                            if (part == masterTable.Columns[col].ColumnName) {
+                        for (col = (masterTable.Columns.IndexOf("Diff") + 1); col < masterTable.Columns.Count; col++) 
+                        {
+                            if (part == masterTable.Columns[col].ColumnName) 
+                            {
                                 match = true;
                                 break;
                             }
@@ -166,6 +164,7 @@ namespace CalCompare
                         if (match == false) 
                         {
                             masterTable.Columns.Add(part, typeof(String));
+                            //masterTable.Columns.Add(part, typeof(ComboBox));
                         }
 
                         // Open the file and copy the cal lines to the grid.
@@ -251,7 +250,7 @@ namespace CalCompare
         /// <param name="s"></param>
         void ParseLine(string s, int col)
         {
-       	    bool error = false;
+       	    bool error = true;
             string calname = String.Empty;
         	string calset  = String.Empty;
 
@@ -280,9 +279,6 @@ namespace CalCompare
                     // Verify that there are 4 fields (separated by 3 commas).
                     if (data.Length == 4)
                     {
-                        // Removing leading and trailing quotes from the Units.
-                        //string units = Regex.Replace(data[3], "\"", String.Empty);
-        
                         // Set the primary key of our main table.
                         masterTable.PrimaryKey = new DataColumn[] {masterTable.Columns["Calname"]};
                     	
@@ -292,12 +288,10 @@ namespace CalCompare
                             DataRow dr = masterTable.NewRow();
                             dr["Calset"] = calset;
                             dr["Calname"] = calname;
-                            //dr["Units"] = units;
-                            //char[] trimChars = {'"'};
-                            //dr["units"] = data[3].Trim(trimChars);
-                            dr["units"] = data[3].Trim(' ', '"');
+                            dr["units"] = data[3].Trim(' ', '"'); // trim spaces and qoutes 
                             dr["Diff"] = false;
                             dr[col] = data[1]; // set the hex value
+                            //(ComboBox)(dr[col]).SelectedValue = data[1]; // set the hex value
                             masterTable.Rows.Add(dr);
                         }
                         else
@@ -305,25 +299,15 @@ namespace CalCompare
                             // The cal name exists. And the cal value for the new part.
                             masterTable.Rows.Find(calname)[col] = data[1];
                         }
-                    }
-                    else
-                    {
-                        error = true; // should have been 3 values and units
+                        
+                        error = false;
                     }
             	}
-            	else 
-            	{
-            	    error = true; // match failed
-            	}
-            }
-            else
-            {
-                error = true; // should have been a single equal sign
             }
             
             if (error)
             {
-                UpdateStatusLabel("Error, the format of the line is wrong: " + s);
+                UpdateStatusLabel("Error - The format of the line is wrong: " + s);
             }
         }
 
@@ -688,19 +672,20 @@ namespace CalCompare
         /// <param name="e"></param>
         void ExportAsXmlClick(object sender, EventArgs e)
         {
-            if (dataGridView1.RowCount < 1) 
+            if (dataGridView1.RowCount > 0) 
             {
-                ExportNullGridMessage();
+                xmlSaveFileDialog.ShowDialog(); // Show the dialog.
             }
             else
             {
-                xmlSaveFileDialog.ShowDialog(); // Show the dialog.
+                ExportNullGridMessage();
             }
         }
         
         void ExportAsXmlFileOk(object sender, System.ComponentModel.CancelEventArgs e)
         {
-    	    workingTable.WriteXml(xmlSaveFileDialog.FileName, XmlWriteMode.WriteSchema);
+    	    workingTable.TableName = "WorkingTable";
+            workingTable.WriteXml(xmlSaveFileDialog.FileName, XmlWriteMode.WriteSchema);
         }
         
         void ExportNullGridMessage()
@@ -969,5 +954,10 @@ namespace CalCompare
 //        }
 
         #endregion auto-filter
+        
+        void UnitTypeRadioButtonCheckedChanged(object sender, EventArgs e)
+        {
+            
+        }
    }
 }
