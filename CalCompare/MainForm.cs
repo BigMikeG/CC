@@ -27,23 +27,11 @@
  *    B) Group character arrays into a single string.
  *  - Make an option to hide Header and End cals.
  *  - This function takes forever "dataGridView1.AutoResizeColumns()" when the grid has lots of data.
- * 
+ *
  * Done:
- *  - Remove auto-filtering it is really slowing things down.
- *  - Add a status message to the DiffOrFilter function when typing characters into filter box it can take awhile to update.
- *  - Removing empty columns HideEmptyColumns can take a long time. Add a status message.
- *    The remove column function takes 4 seconds for each column removed with all calplots loaded.
- *  - Fixed - This code "((DataTable)dataGridView1.DataSource).WriteXml" on line 569 doesn't work anymore.
- *  - When opening cal plots, or importing, always load to the masterTable then copy to the workingTable.
- *  - When diff or filter changed start from the full table and copy to the workingTable when finished.
- *  - Always set the DataSource and Binding to the workingTable.
- *  - Hid the part columns that are blank when filtering.
- *  - Replace the diffTable and filtTable with a single workingTable.
- *  - Added AutoFiltering of the calset column.
- *  - Added Export and Import functionality.
- *  - Horizontal scrollbar would not display. Had to right-click on the grid control in the designer and select "Bring To Front".
- *  - If you click the the upper left corner of the grid (selects everything) and hit Ctrl-C, the grid is copied to the clipboard.
- *    You can then paste it into excel or wherever you like.
+ *  - Padded array indexes with leading zeros.
+ *  - Whenever the filter box changes update the grid from the main table. Checking for the number of 
+ *    characters is incorrect (select and paste).
  */
 
 using System;
@@ -73,8 +61,6 @@ namespace CalCompare
         
         private DataTable masterTable; // complete cal data table loaded from calplots
         private DataTable workingTable; // the working table
-        private bool diffCheckboxCheckedOld = false;
-        private int filterTextLengthOld = 0;
         
         void MainFormLoad(object sender, EventArgs e)
         {
@@ -273,7 +259,10 @@ namespace CalCompare
             	    calset  = match.Groups[1].Value.Trim();
             	    calname = match.Groups[2].Value.Trim();
 
-                    // Split string on commas.
+                    // if the calname is an array, pad some zeros so that it sorts better.
+                    calname = CalNameReformat(calname);
+                    
+            	    // Split string on commas.
                     string[] data = fields[1].Split(',');
                     
                     // Verify that there are 4 fields (separated by 3 commas).
@@ -311,6 +300,82 @@ namespace CalCompare
             }
         }
 
+        /// <summary>
+        /// This function reformats the calname if it is an array so that it will sort better.
+        /// </summary>
+        /// <param name="name"></param>
+        string CalNameReformat(string name)
+        {
+            string rv = "";
+            
+    	    // Check for opening and closing parentheses.
+            // Tuner_cal.fm_qual_cal(1/4 0,1/4 0,1/15 0)
+            string pattern = @"(.+)\((.+)\)";
+            Match match = Regex.Match(name, pattern);
+            if (match.Success)
+            {
+                rv = match.Groups[1].Value + "(";
+                string array   = match.Groups[2].Value;
+
+                // Is it a multi-dimensional array "1/4 0,1/4 0,1/15 0"?
+                // Try splitting string on commas.
+                string[] fields = array.Split(',');
+                pattern = @"(\d+)/(\d+)(.+)";
+                int i = 0;
+                foreach (string field in fields)
+                {
+                    // Insert a comma before each field except the first. 
+                    if (i > 0)
+                    {
+                        rv = rv + ",";
+                    }
+                    
+                    match = Regex.Match(field, pattern);
+                    if (match.Success)
+                    {
+                        rv = rv + PadArrayIndex(field);
+                    }
+                    else
+                    {
+                        rv = rv + field;
+                    }
+                    i++;
+                }
+                rv = rv + ")";
+            }
+            else
+            {
+                rv = name;
+            }
+
+            return rv;
+        }
+        
+        // paren num formardSlash num space num paren
+        // Got This:  1/33 0
+        // Want This: 01/33 0
+        string PadArrayIndex(string name)
+        {
+            string rv;
+            
+            string pattern = @"(\d+)/(\d+)(.+)";
+            Match match = Regex.Match(name, pattern);
+            if (match.Success)
+            {
+                int index = Convert.ToInt32(match.Groups[1].Value);
+                int size = Convert.ToInt32(match.Groups[2].Value);
+                int numChars = (int)Math.Log10((double)size) + 1;
+                string format = "D" + numChars.ToString();
+        	    rv = index.ToString(format) + "/" + match.Groups[2].Value + match.Groups[3].Value;
+        	}
+        	else
+        	{
+        	    rv = name;
+        	}
+            
+        	return rv;
+        }
+        
         /// <summary>
         /// This function removes the rows from the table that contain "HEADER_" in the Calname.
         /// </summary>
@@ -400,24 +465,15 @@ namespace CalCompare
         {
             UpdateStatusLabel("Filtering Calname on '" + filterTextBox.Text + "', please wait...");
             
-            if (filterTextBox.Text.Length > filterTextLengthOld)
-            {
-                CreateTable(ref workingTable, "Calname like '%" + filterTextBox.Text + "%'");
-            }
-            else if (diffCheckBox.Checked) 
-            {
-                CreateTable(ref masterTable, "Diff = 'true'");
-            }
-            else
-            {
-                CreateTable(ref masterTable, "Calname like '%" + filterTextBox.Text + "%'");
-            }
-            
-            UpdateStatusLabel("Displaying rows that contain '" + filterTextBox.Text + "' in the Calname.");
+            CreateTable(ref masterTable, "Calname like '%" + filterTextBox.Text + "%'");
 
-            diffCheckboxCheckedOld = diffCheckBox.Checked;
-            filterTextLengthOld    = filterTextBox.Text.Length;
+            if (diffCheckBox.Checked)
+            {
+                CreateTable(ref workingTable, "Diff = 'true'");
+            }
             
+            
+            UpdateStatusLabel("Displaying rows that contain '" + filterTextBox.Text + "' in the Calname...");
             UpdateGrid();
         }
         
@@ -818,9 +874,6 @@ namespace CalCompare
         void ClearTheGridToolStripMenuItemClick(object sender, EventArgs e)
         {
             ClearTheGrid();
-            //diffCheckBox.Checked = false;
-            //diffCheckboxCheckedOld = false;
-            //filterTextBox.Text = String.Empty;
         }
         
         void AutoResizeColumnsToolStripMenuItemClick(object sender, EventArgs e)

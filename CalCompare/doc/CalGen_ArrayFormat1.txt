@@ -1,0 +1,1 @@
+hmi_wireless_comn_caln.BLUETOOTH_MODULE_DEVICE_NAME_STRING(1/33 0) = 67.0,43,67.0,"Characters (UTF-8)";
