@@ -175,6 +175,7 @@ namespace CalCompare
             // 
             // hideEmptyColumnsToolStripMenuItem
             // 
+            this.hideEmptyColumnsToolStripMenuItem.CheckOnClick = true;
             this.hideEmptyColumnsToolStripMenuItem.Name = "hideEmptyColumnsToolStripMenuItem";
             this.hideEmptyColumnsToolStripMenuItem.Size = new System.Drawing.Size(187, 22);
             this.hideEmptyColumnsToolStripMenuItem.Text = "Hide Empty Columns";

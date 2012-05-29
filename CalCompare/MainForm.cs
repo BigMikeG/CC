@@ -21,14 +21,12 @@
  * To Do:
  *  - Selection of hex or eng values via radio button.
  *  - Display values as ASCII characters.
- *  - String Arrays:
- *    A) Insert zeroes into the calname so that it sorts better.
- *       (1/10 0) becomes (01/10 0).
- *    B) Group character arrays into a single string.
+ *  - String Arrays: Group character arrays into a single string.
  *  - Make an option to hide Header and End cals.
  *  - This function takes forever "dataGridView1.AutoResizeColumns()" when the grid has lots of data.
  *
  * Done:
+ *  - Added speed increase and update of column visibility based on the tool menu setting.
  *  - Padded array indexes with leading zeros.
  *  - Whenever the filter box changes update the grid from the main table. Checking for the number of 
  *    characters is incorrect (select and paste).
@@ -61,7 +59,8 @@ namespace CalCompare
         
         private DataTable masterTable; // complete cal data table loaded from calplots
         private DataTable workingTable; // the working table
-        
+        //private DataGridViewComboBoxColumn Column1;
+
         void MainFormLoad(object sender, EventArgs e)
         {
             //dataGridView1.BindingContextChanged += new EventHandler(dataGridView1_BindingContextChanged);
@@ -150,7 +149,14 @@ namespace CalCompare
                         if (match == false) 
                         {
                             masterTable.Columns.Add(part, typeof(String));
-                            //masterTable.Columns.Add(part, typeof(ComboBox));
+                            
+                            //masterTable.Columns.Add(part, typeof(DataGridViewComboBoxColumn));
+
+                            //Column1 = new DataGridViewComboBoxColumn();
+                            //dataGridView1.Columns.AddRange(new DataGridViewColumn[] {Column1});
+                            //Column1.HeaderText = part;
+                            //Column1.Name = part;
+
                         }
 
                         // Open the file and copy the cal lines to the grid.
@@ -277,9 +283,10 @@ namespace CalCompare
                             DataRow dr = masterTable.NewRow();
                             dr["Calset"] = calset;
                             dr["Calname"] = calname;
-                            dr["units"] = data[3].Trim(' ', '"'); // trim spaces and qoutes 
+                            dr["Units"] = data[3].Trim(' ', '"'); // trim spaces and qoutes 
                             dr["Diff"] = false;
                             dr[col] = data[1]; // set the hex value
+                            //Column1.Items.AddRange(data[0], data[1], data[2]);
                             //(ComboBox)(dr[col]).SelectedValue = data[1]; // set the hex value
                             masterTable.Rows.Add(dr);
                         }
@@ -487,6 +494,7 @@ namespace CalCompare
         {
             BindingSource dataSource = new BindingSource(workingTable, null);
             dataGridView1.DataSource = dataSource;
+            UpdateColumnVisibility();
             SetDiffFlags(ref workingTable);
             HighlightDiffsInGrid();              // highlight rows with diffs in cal values
             AutoResizeFirstThreeColumns();
@@ -507,9 +515,7 @@ namespace CalCompare
         
         /// <summary>
         /// This function will hide any columns that have no value in them.
-        /// This comes into play when you use the filter box.
-        /// I think the Compute takes a long time.
-        /// Update the progress bar so we can see what is happening.
+        /// I think the Remove takes a long time.
         /// </summary>
         /// <param name="table"></param>
         void HideEmptyColumns(ref DataTable table)
@@ -518,7 +524,7 @@ namespace CalCompare
             if (table.Rows.Count > 0)
             {
                 dataGridView1.Visible = false;
-                UpdateStatusLabel("Removing empty columns. This can take an excruciatingly long time, please wait...");
+                UpdateStatusLabel("Hiding empty columns...");
                 
                 int lastIndex = table.Columns.Count - 1;
                 int max = lastIndex - table.Columns.IndexOf("Diff") - 1;
@@ -533,21 +539,36 @@ namespace CalCompare
                     UpdateProgressBar(0, max, val);
                     UpdateStatusLabel("Checking column " + colName + "...");
                     
+                    // If the column is empty hide it.
                     int count = (int)table.Compute(expression, filter);
                     if (count == 0)
                     {
-                        UpdateStatusLabel("Removing column " + colName + "...");
-                        table.Columns.Remove(colName);
+                        UpdateStatusLabel("Hidign column " + colName + "...");
+                        //table.Columns.Remove(colName);
+                        dataGridView1.Columns[colName].Visible = false;
+                    }
+                    else
+                    {
+                        dataGridView1.Columns[colName].Visible = true;
                     }
                 }
                 // End for (int i = lastIndex; i > table.Columns.IndexOf("Diff"); i--)
                 
-                UpdateStatusLabel("Empty columns were removed.");
+                UpdateStatusLabel("Empty columns have been hidden.");
                 dataGridView1.Visible = true;
-                
-                UpdateGrid();
             }
             // End if (table.Rows.Count > 0) 
+        }
+        
+        /// <summary>
+        /// Make all data grid view columns visible.
+        /// </summary>
+        void UnhideAllColumns()
+        {
+            for (int i = workingTable.Columns.IndexOf("Diff") + 1; i < workingTable.Columns.Count; i++)
+            {
+                dataGridView1.Columns[i].Visible = true;
+            }
         }
         
         /// <summary>
@@ -888,7 +909,19 @@ namespace CalCompare
         
         void HideEmptyColumnsToolStripMenuItemClick(object sender, EventArgs e)
         {
-            HideEmptyColumns(ref workingTable);
+            UpdateColumnVisibility();
+        }
+        
+        void UpdateColumnVisibility()
+        {
+            if (hideEmptyColumnsToolStripMenuItem.Checked) 
+            {
+                HideEmptyColumns(ref workingTable);
+            }
+            else
+            {
+                UnhideAllColumns();
+            }
         }
         
         #endregion tools
@@ -1012,5 +1045,5 @@ namespace CalCompare
         {
             
         }
-   }
+    }
 }
