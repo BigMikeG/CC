@@ -71,6 +71,7 @@ namespace CalCompare
             this.filterTimer = new System.Windows.Forms.Timer(this.components);
             this.hexRadioButton = new System.Windows.Forms.RadioButton();
             this.engRadioButton = new System.Windows.Forms.RadioButton();
+            this.charRadioButton = new System.Windows.Forms.RadioButton();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.statusStrip1.SuspendLayout();
@@ -171,6 +172,7 @@ namespace CalCompare
             this.autoResizeColumnsToolStripMenuItem.Name = "autoResizeColumnsToolStripMenuItem";
             this.autoResizeColumnsToolStripMenuItem.Size = new System.Drawing.Size(187, 22);
             this.autoResizeColumnsToolStripMenuItem.Text = "Auto Resize Columns";
+            this.autoResizeColumnsToolStripMenuItem.ToolTipText = "Warning: This can take a ridiculously long time!";
             this.autoResizeColumnsToolStripMenuItem.Click += new System.EventHandler(this.AutoResizeColumnsToolStripMenuItemClick);
             // 
             // hideEmptyColumnsToolStripMenuItem
@@ -179,7 +181,6 @@ namespace CalCompare
             this.hideEmptyColumnsToolStripMenuItem.Name = "hideEmptyColumnsToolStripMenuItem";
             this.hideEmptyColumnsToolStripMenuItem.Size = new System.Drawing.Size(187, 22);
             this.hideEmptyColumnsToolStripMenuItem.Text = "Hide Empty Columns";
-            this.hideEmptyColumnsToolStripMenuItem.ToolTipText = "Warning: This can take a ridiculously long time!";
             this.hideEmptyColumnsToolStripMenuItem.Click += new System.EventHandler(this.HideEmptyColumnsToolStripMenuItemClick);
             // 
             // helpToolStripMenuItem
@@ -222,6 +223,7 @@ namespace CalCompare
             // 
             this.dataGridView1.AllowUserToAddRows = false;
             this.dataGridView1.AllowUserToDeleteRows = false;
+            this.dataGridView1.AllowUserToOrderColumns = true;
             this.dataGridView1.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.DisplayedCells;
             this.dataGridView1.ClipboardCopyMode = System.Windows.Forms.DataGridViewClipboardCopyMode.EnableAlwaysIncludeHeaderText;
             this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
@@ -231,7 +233,7 @@ namespace CalCompare
             this.dataGridView1.ReadOnly = true;
             this.dataGridView1.RowHeadersVisible = false;
             this.dataGridView1.Size = new System.Drawing.Size(749, 299);
-            this.dataGridView1.TabIndex = 1;
+            this.dataGridView1.TabIndex = 6;
             this.dataGridView1.ColumnHeaderMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.DataGridView1ColumnHeaderMouseClick);
             // 
             // statusStrip1
@@ -244,7 +246,7 @@ namespace CalCompare
             this.statusStrip1.Location = new System.Drawing.Point(0, 323);
             this.statusStrip1.Name = "statusStrip1";
             this.statusStrip1.Size = new System.Drawing.Size(749, 22);
-            this.statusStrip1.TabIndex = 4;
+            this.statusStrip1.TabIndex = 7;
             this.statusStrip1.Text = "statusStrip1";
             // 
             // toolStripProgressBar1
@@ -279,7 +281,7 @@ namespace CalCompare
             this.diffCheckBox.Location = new System.Drawing.Point(151, 0);
             this.diffCheckBox.Name = "diffCheckBox";
             this.diffCheckBox.Size = new System.Drawing.Size(44, 24);
-            this.diffCheckBox.TabIndex = 5;
+            this.diffCheckBox.TabIndex = 1;
             this.diffCheckBox.Text = "Diff";
             this.diffCheckBox.UseVisualStyleBackColor = true;
             this.diffCheckBox.CheckedChanged += new System.EventHandler(this.DiffCheckBoxCheckedChanged);
@@ -289,7 +291,7 @@ namespace CalCompare
             this.filterTextBox.Location = new System.Drawing.Point(201, 2);
             this.filterTextBox.Name = "filterTextBox";
             this.filterTextBox.Size = new System.Drawing.Size(172, 20);
-            this.filterTextBox.TabIndex = 6;
+            this.filterTextBox.TabIndex = 2;
             this.filterTextBox.TextChanged += new System.EventHandler(this.FilterTextBoxTextChanged);
             // 
             // xmlSaveFileDialog
@@ -330,31 +332,41 @@ namespace CalCompare
             // hexRadioButton
             // 
             this.hexRadioButton.Checked = true;
-            this.hexRadioButton.Location = new System.Drawing.Point(379, 0);
+            this.hexRadioButton.Location = new System.Drawing.Point(431, 0);
             this.hexRadioButton.Name = "hexRadioButton";
             this.hexRadioButton.Size = new System.Drawing.Size(46, 24);
-            this.hexRadioButton.TabIndex = 7;
+            this.hexRadioButton.TabIndex = 4;
             this.hexRadioButton.TabStop = true;
             this.hexRadioButton.Text = "Hex";
             this.hexRadioButton.UseVisualStyleBackColor = true;
-            this.hexRadioButton.CheckedChanged += new System.EventHandler(this.UnitTypeRadioButtonCheckedChanged);
+            this.hexRadioButton.CheckedChanged += new System.EventHandler(this.hexRadioButtonCheckedChanged);
             // 
             // engRadioButton
             // 
-            this.engRadioButton.Enabled = false;
-            this.engRadioButton.Location = new System.Drawing.Point(432, 0);
+            this.engRadioButton.Location = new System.Drawing.Point(379, 0);
             this.engRadioButton.Name = "engRadioButton";
             this.engRadioButton.Size = new System.Drawing.Size(46, 24);
-            this.engRadioButton.TabIndex = 8;
+            this.engRadioButton.TabIndex = 3;
             this.engRadioButton.Text = "Eng";
             this.engRadioButton.UseVisualStyleBackColor = true;
-            this.engRadioButton.CheckedChanged += new System.EventHandler(this.UnitTypeRadioButtonCheckedChanged);
+            this.engRadioButton.CheckedChanged += new System.EventHandler(this.engRadioButtonCheckedChanged);
+            // 
+            // charRadioButton
+            // 
+            this.charRadioButton.Location = new System.Drawing.Point(483, 0);
+            this.charRadioButton.Name = "charRadioButton";
+            this.charRadioButton.Size = new System.Drawing.Size(47, 24);
+            this.charRadioButton.TabIndex = 5;
+            this.charRadioButton.Text = "Char";
+            this.charRadioButton.UseVisualStyleBackColor = true;
+            this.charRadioButton.CheckedChanged += new System.EventHandler(this.charRadioButtonCheckedChanged);
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(749, 345);
+            this.Controls.Add(this.charRadioButton);
             this.Controls.Add(this.engRadioButton);
             this.Controls.Add(this.hexRadioButton);
             this.Controls.Add(this.dataGridView1);
@@ -376,6 +388,7 @@ namespace CalCompare
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+        private System.Windows.Forms.RadioButton charRadioButton;
         private System.Windows.Forms.RadioButton engRadioButton;
         private System.Windows.Forms.RadioButton hexRadioButton;
         private System.Windows.Forms.Timer filterTimer;

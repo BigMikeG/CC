@@ -24,10 +24,13 @@ namespace MyFileActions
         }
         
         // You can use any delimiter you like (, ; tab etc).
-        static public void AsTextDelimited(ref DataGridView grid, string filename, string delimiter)
+        static public void AsTextDelimited(ref DataGridView grid, string tablename, string filename, string delimiter)
         {
             int i;
             StringBuilder sb = new StringBuilder();
+            
+            // Write the Table Name to the first row of the file.
+            sb.Append(tablename + Environment.NewLine);
             
             // Write the header row to the string builder.
             // All but the last column needs a delimiter after it.
@@ -80,6 +83,9 @@ namespace MyFileActions
             {
                 using (StreamReader sr = new StreamReader(filename))
                 {
+                    // Read Table Name
+                    string name = sr.ReadLine();
+                    
                     // Reading header
                     string[] row = sr.ReadLine().Split(delimiters);
                     foreach (string col in row) 
@@ -109,5 +115,31 @@ namespace MyFileActions
             
             return rv;
         }
+
+//        /// <summary>
+//        /// This function reads the first line of an exported text file.
+//        /// </summary>
+//        /// <param name="filename">The import file.</param>
+//        /// <returns>The data table name.</returns>
+//        static public string GetTableName(string filename)
+//        {
+//            string name = String.Empty;
+//
+//            try
+//            {
+//                using (StreamReader sr = new StreamReader(filename))
+//                {
+//                    // Read Table Name
+//                    name = sr.ReadLine();
+//                }
+//            } 
+//            catch (Exception e) 
+//            {
+//                //rv = "Failed to read text file: " + e.ToString();
+//                MessageBox.Show("Failed to read text file: " + e.ToString());
+//            }
+//            
+//            return name;
+//        }
     }
 }
