@@ -930,6 +930,9 @@ namespace CalCompare
         
         /// <summary>
         /// This function imports data from a text delimited file.
+        /// This could be better. 
+        /// Read all the data into a temporary table.
+        /// Then merge the tables like the XML import.
         /// </summary>
         /// <param name="filename">The name of the file to import.</param>
         /// <param name="delimiter">The text delimiter (such as a comma "," or 
@@ -1089,33 +1092,38 @@ namespace CalCompare
             return rv;
         }
         
+        bool IsTableNameValid(string name)
+        {
+            if (name.Equals("EngTable") || name.Equals("HexTable") || name.Equals("CharTable"))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         void ImportFromXml()
         {
-            try
+            // Read the XML file into a temporary table.
+            DataTable table1 = new DataTable();
+            table1.ReadXml(importOpenFileDialog.FileName);
+            
+            
+            // Merge table1 with the table of the same name.
+            if (IsTableNameValid(table1.TableName))
             {
-                // Read the XML file into a new table. Then copy to the full table to get all the part columns.
-                DataTable dt = new DataTable();
-                dt.ReadXml(importOpenFileDialog.FileName);
-                
-                // Only import if the "Diff" column exists.
-                if (dt.Columns["Diff"] == null)
-                {
-                    UpdateStatusLabel("Import failed. I only import files that I exported.");
-                }
-                else
-                {
-                    // Diff column exists. Copy impoted table to the full table.
-                    CopyTableFromName(ref dt, dt.TableName);
-                    SetRadioButton(dt.TableName);
-                    
-                    //hexTable.AcceptChanges(); // Do we need to do this?
-                    UpdateStatusLabel("Data was imported.");
-                    DiffOrFilterChanged();  // display grid based on diff and filter settings
-                }
+                SetRadioButton(table1.TableName);
+                DataTable table2 = GetTableFromName(table1.TableName);
+                table2.Merge(table1, false); // overwrite existing data
+                CopySelectedTableToWorking();
+                DiffOrFilterChanged();  // display grid based on diff and filter settings
+                UpdateStatusLabel("XML data was imported.");
             }
-            catch
+            else
             {
-                UpdateStatusLabel("Import failed. I only import files that I exported.");
+                UpdateStatusLabel("Bad table name in XML file.");
             }
         }
 
@@ -1132,9 +1140,7 @@ namespace CalCompare
             if (dataGridView1.Rows.Count > 0)
             {
                 UpdateStatusLabel("Resizing the columns. This can take awhile. Please be patient...");
-                //dataGridView1.Visible = false;     // hide the grid to speed things up
                 dataGridView1.AutoResizeColumns(); // Resize the columns to fit their contents.
-                //dataGridView1.Visible = true;
                 UpdateStatusLabel("Columns were auto-resized.");
             }
         }
