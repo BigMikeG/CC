@@ -19,9 +19,6 @@
  *  3 LOAD ALL CALPLOTS AND MAKE SURE THE FILTER BOX IS WORKING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  *  
  * To Do:
- *  - Selection of eng, hex or char (convert ASCII) values via radio button.
- *    Create 3 master data tables: Eng values, Hex valuse, ASCII values.
- *    When the Radio buttons are clicked, load the appropriate table.
  *  - String Arrays: Group character arrays into a single string.
  *  - This function takes forever "dataGridView1.AutoResizeColumns()" when the grid has lots of data.
  *
@@ -51,12 +48,6 @@ namespace CalCompare
     /// </summary>
     public partial class MainForm : Form
     {
-        public MainForm()
-        {
-            // The InitializeComponent() call is required for Windows Forms designer support.
-            InitializeComponent();
-        }
-        
         // Calplots contain engineering and hex values. The data may be ascii characters as well.
         // A table is created for each type of data. Which data that is displayed is based
         // on the Radio button selected (Eng, Hex, ASCII).
@@ -65,7 +56,14 @@ namespace CalCompare
         private DataTable charTable;    // cal data table of ascii character data
         
         private DataTable workingTable; // the working table
+        private string filterTextBoxTextOld = String.Empty; // previous value of the filter text box
 
+        public MainForm()
+        {
+            // The InitializeComponent() call is required for Windows Forms designer support.
+            InitializeComponent();
+        }
+        
         void MainFormLoad(object sender, EventArgs e)
         {
             // Enable virtual mode.
@@ -129,16 +127,17 @@ namespace CalCompare
             // Show the open file dialog. And if we get a list of files continue.
     	    if (openFileDialog1.ShowDialog() == DialogResult.OK)
     	    {
-    	        UpdateStatusLabel("Reading files and loading to the data table...");
-    	        
     	        // Make the grid invisible (it updates faster that way). And hide the Diff column if it exists. 
     	        dataGridView1.Visible = false;
     	        if (dataGridView1.Columns["Diff"] != null)
+    	        {
     	           dataGridView1.Columns["Diff"].Visible = false;
-
+    	        }
+    	        
                 // Read the files
                 foreach (string file in openFileDialog1.FileNames) 
                 {
+                    UpdateStatusLabel("Reading file: " + file);
                     // Extract the part number from the filename (removing leading cp_ and extension).
                     string part = Regex.Replace(Path.GetFileNameWithoutExtension(file), "(^cp_)", String.Empty);
                     AddPartToTables(file, part);
@@ -180,9 +179,6 @@ namespace CalCompare
         
         void AddPartToTables(string file, string part)
         {
-            //List<int> cols = new List<int>();
-
-            //AddColToTables(part, ref cols);
             AddColToTables(part);
             
             // Open the file and copy the cal lines to the grid.
@@ -192,7 +188,6 @@ namespace CalCompare
                 string line;
                 while ((line = r.ReadLine()) != null)
                 {
-                    //ParseLine(line, cols); // Add the line to the data grid.
                     ParseLine(line, part); // Add the line to the data grid.
                 }
             }
@@ -216,8 +211,6 @@ namespace CalCompare
                 {
                     table.Columns.Add(part, typeof(String));
                 }
-
-                //cols.Add(table.Columns.IndexOf(part)); // add the column index to the list
             }
     	}
         
@@ -285,8 +278,6 @@ namespace CalCompare
                         string engVal = data[2];
                         string units  = data[3].Trim(' ', '"'); // trim spaces and qoutes;
                         
-                        //AddRowToTable(ref  engTable,  cols[0], calset, calname, engVal, units);
-                        //AddRowToTable(ref  hexTable,  cols[1], calset, calname, hexVal, units);
                         AddRowToTable(ref  engTable,  part, calset, calname, units, engVal);
                         AddRowToTable(ref  hexTable,  part, calset, calname, units, hexVal);
                         
@@ -295,7 +286,6 @@ namespace CalCompare
                             // Convert the number expressed in base-16 to an integer.
                             int val = Convert.ToInt32(hexVal, 16);
                             string chrVal = Char.ConvertFromUtf32(val); // set the cal value
-                            //AddRowToTable(ref  charTable, cols[2], calset, calname, chrVal, units);
                             AddRowToTable(ref  charTable, part, calset, calname, units, chrVal);
                         }
                         
@@ -333,29 +323,6 @@ namespace CalCompare
                 table.Rows.Find(name)[col] = val;
             }
         }
-//        void AddRowToTable(ref DataTable table, int col, string set, string name, string val, string units)
-//        {
-//            // Set the primary key of our main table.
-//            table.PrimaryKey = new DataColumn[] {table.Columns["Calname"]};
-//        	
-//            // Verify that the row does not exist already.
-//            if (table.Rows.Find(name) == null)
-//            {
-//                // Cal name is not in the table. Add a new row and populate it.
-//                DataRow dr = table.NewRow();
-//                dr["Calset"]  = set;
-//                dr["Calname"] = name;
-//                dr["Units"]   = units;
-//                dr["Diff"]    = false;
-//                
-//                dr[col] = val;
-//                table.Rows.Add(dr);
-//            }
-//            else
-//            {
-//                table.Rows.Find(name)[col] = val;
-//            }
-//        }
         
         /// <summary>
         /// This function checks the Units to see if it is a character.
@@ -550,20 +517,27 @@ namespace CalCompare
         /// </summary>
         void DiffOrFilterChanged()
         {
-            UpdateStatusLabel("Filtering Calname on '" + filterTextBox.Text + "', please wait...");
-            
-            // Filter the selected table on the contents of the filter box.
-            // And copy the results to the working table.
-            DataTable dt = GetSelectedTable();
-            CreateTable(ref dt, "Calname like '%" + filterTextBox.Text + "%'");
+            // If filter
+            if ((filterTextBox.Text != String.Empty) || (filterTextBoxTextOld != String.Empty))
+            {
+                UpdateStatusLabel("Filtering Calname on '" + filterTextBox.Text + "', please wait...");
+                
+                // Filter the selected table on the contents of the filter box.
+                // And copy the results to the working table.
+                DataTable dt = GetSelectedTable();
+                CreateTable(ref dt, "Calname like '%" + filterTextBox.Text + "%'");
+                
+                filterTextBoxTextOld = filterTextBox.Text;
 
-            // If the Diff checkbox is checked, only displya the rows with diffs.
+                UpdateStatusLabel("Displaying rows that contain '" + filterTextBox.Text + "' in the Calname.");
+            }
+
+            // If the Diff checkbox is checked, only display the rows with diffs.
             if (diffCheckBox.Checked)
             {
                 CreateTable(ref workingTable, "Diff = 'true'");
             }
             
-            UpdateStatusLabel("Displaying rows that contain '" + filterTextBox.Text + "' in the Calname...");
             UpdateGrid();
         }
         
