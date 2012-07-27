@@ -167,7 +167,7 @@ namespace CalCompare
                 CopySelectedTableToWorking();
                 UpdateStatusLabel("Working table has been updated.");
                 
-                DiffOrFilterChanged();         // display grid based on diff and filter settings
+                FilterTheTable();         // display grid based on diff and filter settings
                 UpdateStatusLabel("Grid has been updated.");
     	    }
     	    else
@@ -237,7 +237,6 @@ namespace CalCompare
         ///   data:                                             0    ,1 ,2   ,3
         /// </summary>
         /// <param name="s"></param>
-        //void ParseLine(string s, List<int> cols)
         void ParseLine(string line, string part)
         {
        	    bool error = true;
@@ -264,7 +263,7 @@ namespace CalCompare
             	    calname = match.Groups[2].Value.Trim();
 
                     // if the calname is an array, pad some zeros so that it sorts better.
-                    calname = CalNameReformat(calname);
+                    //calname = CalNameReformat(calname);
                     
             	    // Split string on commas. 
             	    // "fields[1]" contains everything after the equal sign.
@@ -284,9 +283,45 @@ namespace CalCompare
                         if (IsUnitsChar(units))
                         {
                             // Convert the number expressed in base-16 to an integer.
-                            int val = Convert.ToInt32(hexVal, 16);
-                            string chrVal = Char.ConvertFromUtf32(val); // set the cal value
-                            AddRowToTable(ref  charTable, part, calset, calname, units, chrVal);
+                            //int val = Convert.ToInt32(hexVal, 16);
+                            //string chrVal = Char.ConvertFromUtf32(val); // set the cal value
+                            //AddRowToTable(ref  charTable, part, calset, calname, units, chrVal);
+                        
+                            // ToInt32 can throw FormatException or OverflowException.
+                            int val = -1;
+                            try
+                            {
+                                // Convert the number expressed in base-16 to an integer.
+                                val = Convert.ToInt32(hexVal, 16);
+                            }
+                            catch (ArgumentOutOfRangeException e)
+                            {
+                                // val is not a hex number. Just add the original string to the table.
+                                // It is probably "*UNDEF*".
+                                AddRowToTable(ref  charTable, part, calset, calname, units, hexVal);
+                                e.Equals(null); // just to suppress a warning
+                            }
+                            catch (FormatException e)
+                            {
+                                // val is not a hex number. Just add the original string to the table.
+                                // It is probably "*UNDEF*".
+                                AddRowToTable(ref  charTable, part, calset, calname, units, hexVal);
+                                e.Equals(null); // just to suppress a warning
+                            }
+                            catch (OverflowException e)
+                            {
+                                // The number is too big.
+                                AddRowToTable(ref  charTable, part, calset, calname, units, "Overflow");
+                                e.Equals(null); // just to suppress a warning
+                            }
+                            finally
+                            {
+                                if (val != -1)
+                                {
+                                    string chrVal = Char.ConvertFromUtf32(val); // set the cal value
+                                    AddRowToTable(ref  charTable, part, calset, calname, units, chrVal);
+                                }
+                            }
                         }
                         
                         error = false;
@@ -456,7 +491,36 @@ namespace CalCompare
         // This function is called when the Diff checkbox is clicked (toggled).
         void DiffCheckBoxCheckedChanged(object sender, EventArgs e)
         {
-            DiffOrFilterChanged();
+            // If the Diff checkbox is checked, only display the rows with diffs.
+            if (diffCheckBox.Checked)
+            {
+                CreateTable(ref workingTable, "Diff = 'true'");
+            }
+            else
+            {
+                // Get the table based on the type (radio button selection of Eng, Hex or Char).
+                DataTable dt = GetSelectedTable();
+                
+                // Is there something in the filter text box?
+                if ((filterTextBox.Text != String.Empty) || (filterTextBoxTextOld != String.Empty))
+                {
+                    UpdateStatusLabel("Filtering Calname on '" + filterTextBox.Text + "', please wait...");
+                    
+                    // Filter the selected table on the contents of the filter box.
+                    // And copy the results to the working table.
+                    CreateTable(ref dt, "Calname like '%" + filterTextBox.Text + "%'");
+                    
+                    UpdateStatusLabel("Displaying rows that contain '" + filterTextBox.Text + "' in the Calname.");
+                }
+                else
+                {
+                    // No filter. Copy the selected table to the working table.
+                    workingTable = dt.Copy();
+                    workingTable.TableName = dt.TableName;
+                }
+            }
+            
+            UpdateGrid();
         }
         
         // This function is called when the user types a character into the filter textbox.
@@ -472,7 +536,7 @@ namespace CalCompare
         void FilterTimerTick(object sender, EventArgs e)
         {
             filterTimer.Stop();
-            DiffOrFilterChanged();
+            FilterTheTable();
         }
         
         /// <summary>
@@ -486,7 +550,7 @@ namespace CalCompare
             {
                 workingTable = engTable.Copy();
                 workingTable.TableName = engTable.TableName;
-                DiffOrFilterChanged();
+                FilterTheTable();
             }
         }
 
@@ -496,7 +560,7 @@ namespace CalCompare
             {
                 workingTable = hexTable.Copy();
                 workingTable.TableName = hexTable.TableName;
-                DiffOrFilterChanged();
+                FilterTheTable();
             }
         }
 
@@ -506,18 +570,17 @@ namespace CalCompare
             {
                 workingTable = charTable.Copy();
                 workingTable.TableName = charTable.TableName;
-                DiffOrFilterChanged();
+                FilterTheTable();
             }
         }
 
         /// <summary>
         /// This function is called when the diff checkbox is clicked, the filter textbox text changes,
         /// or one of the radio buttons is clicked.
-        /// 
         /// </summary>
-        void DiffOrFilterChanged()
+        void FilterTheTable()
         {
-            // If filter
+            // Is there something in the filter text box?
             if ((filterTextBox.Text != String.Empty) || (filterTextBoxTextOld != String.Empty))
             {
                 UpdateStatusLabel("Filtering Calname on '" + filterTextBox.Text + "', please wait...");
@@ -610,63 +673,6 @@ namespace CalCompare
                 dataGridView1.Columns["Calname"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             if (dataGridView1.Columns["Units"] != null)
                 dataGridView1.Columns["Units"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-        }
-        
-        /// <summary>
-        /// This function will hide any columns that have no value in them.
-        /// I think the Remove takes a long time.
-        /// </summary>
-        /// <param name="table"></param>
-        void HideEmptyColumns(ref DataTable table)
-        {
-            // Is there anything in the table?
-            if (table.Rows.Count > 0)
-            {
-                dataGridView1.Visible = false; // hide the grid to speed things up
-                UpdateStatusLabel("Hiding empty columns...");
-                
-                int lastIndex = table.Columns.Count - 1;
-                int max = lastIndex - table.Columns.IndexOf("Diff") - 1;
-                
-                for (int i = lastIndex; i > table.Columns.IndexOf("Diff"); i--)
-                {
-                    int val = lastIndex - i;
-                    string colName = table.Columns[i].ColumnName;
-                    string expression = "COUNT([" + colName + "])";
-                    string filter     = "[" + colName + "] <> ''";
-    
-                    UpdateProgressBar(0, max, val);
-                    UpdateStatusLabel("Checking column " + colName + "...");
-                    
-                    // If the column is empty hide it.
-                    int count = (int)table.Compute(expression, filter);
-                    if (count == 0)
-                    {
-                        UpdateStatusLabel("Hiding column " + colName + "...");
-                        dataGridView1.Columns[colName].Visible = false;
-                    }
-                    else
-                    {
-                        dataGridView1.Columns[colName].Visible = true;
-                    }
-                }
-                // End for (int i = lastIndex; i > table.Columns.IndexOf("Diff"); i--)
-                
-                UpdateStatusLabel("Empty columns have been hidden.");
-                dataGridView1.Visible = true;
-            }
-            // End if (table.Rows.Count > 0) 
-        }
-        
-        /// <summary>
-        /// Make all data grid view columns visible.
-        /// </summary>
-        void UnhideAllColumns()
-        {
-            for (int i = workingTable.Columns.IndexOf("Diff") + 1; i < workingTable.Columns.Count; i++)
-            {
-                dataGridView1.Columns[i].Visible = true;
-            }
         }
         
         /// <summary>
@@ -1092,7 +1098,7 @@ namespace CalCompare
                 DataTable table2 = GetTableFromName(table1.TableName);
                 table2.Merge(table1, false); // overwrite existing data
                 CopySelectedTableToWorking();
-                DiffOrFilterChanged();  // display grid based on diff and filter settings
+                FilterTheTable();  // display grid based on diff and filter settings
                 UpdateStatusLabel("XML data was imported.");
             }
             else
@@ -1134,6 +1140,105 @@ namespace CalCompare
             {
                 UnhideAllColumns();
             }
+        }
+        
+        /// <summary>
+        /// This function will hide any columns that have no value in them.
+        /// </summary>
+        /// <param name="table"></param>
+        void HideEmptyColumns(ref DataTable table)
+        {
+            // Is there anything in the table?
+            if (table.Rows.Count > 0)
+            {
+                dataGridView1.Visible = false; // hide the grid to speed things up
+                UpdateStatusLabel("Hiding empty columns...");
+                
+                int lastIndex = table.Columns.Count - 1;
+                int max = lastIndex - table.Columns.IndexOf("Diff") - 1;
+                
+                for (int i = lastIndex; i > table.Columns.IndexOf("Diff"); i--)
+                {
+                    int val = lastIndex - i;
+                    string colName = table.Columns[i].ColumnName;
+                    string expression = "COUNT([" + colName + "])";
+                    string filter     = "[" + colName + "] <> ''";
+    
+                    UpdateProgressBar(0, max, val);
+                    UpdateStatusLabel("Checking column " + colName + "...");
+                    
+                    // If the column is empty hide it.
+                    int count = (int)table.Compute(expression, filter);
+                    if (count == 0)
+                    {
+                        UpdateStatusLabel("Hiding column " + colName + "...");
+                        dataGridView1.Columns[colName].Visible = false;
+                    }
+                    else
+                    {
+                        dataGridView1.Columns[colName].Visible = true;
+                    }
+                }
+                // End for (int i = lastIndex; i > table.Columns.IndexOf("Diff"); i--)
+                
+                UpdateStatusLabel("Empty columns have been hidden.");
+                dataGridView1.Visible = true;
+            }
+            // End if (table.Rows.Count > 0) 
+        }
+        
+        /// <summary>
+        /// Make all data grid view columns visible.
+        /// </summary>
+        void UnhideAllColumns()
+        {
+            for (int i = workingTable.Columns.IndexOf("Diff") + 1; i < workingTable.Columns.Count; i++)
+            {
+                dataGridView1.Columns[i].Visible = true;
+            }
+        }
+        
+        /// <summary>
+        /// This function will hide any columns that have no value in them.
+        /// I think the Remove takes a long time.
+        /// </summary>
+        /// <param name="table"></param>
+        void RemoveEmptyColumnsToolStripMenuItemClick(object sender, EventArgs e)
+        {
+            // Is there anything in the table?
+            if (workingTable.Rows.Count > 0)
+            {
+                dataGridView1.Visible = false; // hide the grid to speed things up
+                UpdateStatusLabel("Hiding empty columns...");
+                
+                int lastIndex = workingTable.Columns.Count - 1;
+                int max = lastIndex - workingTable.Columns.IndexOf("Diff") - 1;
+                
+                for (int i = lastIndex; i > workingTable.Columns.IndexOf("Diff"); i--)
+                {
+                    int val = lastIndex - i;
+                    string colName = workingTable.Columns[i].ColumnName;
+                    string expression = "COUNT([" + colName + "])";
+                    string filter     = "[" + colName + "] <> ''";
+    
+                    UpdateProgressBar(0, max, val);
+                    UpdateStatusLabel("Checking column " + colName + "...");
+                    
+                    // If the column is empty hide it.
+                    int count = (int)workingTable.Compute(expression, filter);
+                    if (count == 0)
+                    {
+                        UpdateStatusLabel("Removing column " + colName + "...");
+                        //dataGridView1.Columns[colName].Visible = false;
+                        workingTable.Columns.Remove(colName);
+                    }
+                }
+                // End for (int i = lastIndex; i > table.Columns.IndexOf("Diff"); i--)
+                
+                UpdateStatusLabel("Empty columns have been removed.");
+                dataGridView1.Visible = true;
+            }
+            // End if (table.Rows.Count > 0) 
         }
         
         #endregion tools

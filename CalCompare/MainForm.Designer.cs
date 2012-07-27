@@ -51,6 +51,7 @@ namespace CalCompare
             this.clearTheGridToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.autoResizeColumnsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hideEmptyColumnsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.removeEmptyColumnsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.usersGuideToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.calSupportToolsWebSiteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -155,7 +156,8 @@ namespace CalCompare
             this.toolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
                                     this.clearTheGridToolStripMenuItem,
                                     this.autoResizeColumnsToolStripMenuItem,
-                                    this.hideEmptyColumnsToolStripMenuItem});
+                                    this.hideEmptyColumnsToolStripMenuItem,
+                                    this.removeEmptyColumnsToolStripMenuItem});
             this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             this.toolsToolStripMenuItem.Size = new System.Drawing.Size(48, 20);
             this.toolsToolStripMenuItem.Text = "Tools";
@@ -163,14 +165,14 @@ namespace CalCompare
             // clearTheGridToolStripMenuItem
             // 
             this.clearTheGridToolStripMenuItem.Name = "clearTheGridToolStripMenuItem";
-            this.clearTheGridToolStripMenuItem.Size = new System.Drawing.Size(187, 22);
-            this.clearTheGridToolStripMenuItem.Text = "Clear The Grid";
+            this.clearTheGridToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
+            this.clearTheGridToolStripMenuItem.Text = "Clear";
             this.clearTheGridToolStripMenuItem.Click += new System.EventHandler(this.ClearTheGridToolStripMenuItemClick);
             // 
             // autoResizeColumnsToolStripMenuItem
             // 
             this.autoResizeColumnsToolStripMenuItem.Name = "autoResizeColumnsToolStripMenuItem";
-            this.autoResizeColumnsToolStripMenuItem.Size = new System.Drawing.Size(187, 22);
+            this.autoResizeColumnsToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
             this.autoResizeColumnsToolStripMenuItem.Text = "Auto Resize Columns";
             this.autoResizeColumnsToolStripMenuItem.ToolTipText = "Warning: This can take a ridiculously long time!";
             this.autoResizeColumnsToolStripMenuItem.Click += new System.EventHandler(this.AutoResizeColumnsToolStripMenuItemClick);
@@ -179,9 +181,16 @@ namespace CalCompare
             // 
             this.hideEmptyColumnsToolStripMenuItem.CheckOnClick = true;
             this.hideEmptyColumnsToolStripMenuItem.Name = "hideEmptyColumnsToolStripMenuItem";
-            this.hideEmptyColumnsToolStripMenuItem.Size = new System.Drawing.Size(187, 22);
+            this.hideEmptyColumnsToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
             this.hideEmptyColumnsToolStripMenuItem.Text = "Hide Empty Columns";
             this.hideEmptyColumnsToolStripMenuItem.Click += new System.EventHandler(this.HideEmptyColumnsToolStripMenuItemClick);
+            // 
+            // removeEmptyColumnsToolStripMenuItem
+            // 
+            this.removeEmptyColumnsToolStripMenuItem.Name = "removeEmptyColumnsToolStripMenuItem";
+            this.removeEmptyColumnsToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
+            this.removeEmptyColumnsToolStripMenuItem.Text = "Remove Empty Columns";
+            this.removeEmptyColumnsToolStripMenuItem.Click += new System.EventHandler(this.RemoveEmptyColumnsToolStripMenuItemClick);
             // 
             // helpToolStripMenuItem
             // 
@@ -388,6 +397,7 @@ namespace CalCompare
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+        private System.Windows.Forms.ToolStripMenuItem removeEmptyColumnsToolStripMenuItem;
         private System.Windows.Forms.RadioButton charRadioButton;
         private System.Windows.Forms.RadioButton engRadioButton;
         private System.Windows.Forms.RadioButton hexRadioButton;
