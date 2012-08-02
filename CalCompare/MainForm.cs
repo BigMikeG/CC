@@ -263,7 +263,7 @@ namespace CalCompare
             	    calname = match.Groups[2].Value.Trim();
 
                     // if the calname is an array, pad some zeros so that it sorts better.
-                    //calname = CalNameReformat(calname);
+                    calname = CalNameReformat(calname);
                     
             	    // Split string on commas. 
             	    // "fields[1]" contains everything after the equal sign.
@@ -282,11 +282,6 @@ namespace CalCompare
                         
                         if (IsUnitsChar(units))
                         {
-                            // Convert the number expressed in base-16 to an integer.
-                            //int val = Convert.ToInt32(hexVal, 16);
-                            //string chrVal = Char.ConvertFromUtf32(val); // set the cal value
-                            //AddRowToTable(ref  charTable, part, calset, calname, units, chrVal);
-                        
                             // ToInt32 can throw FormatException or OverflowException.
                             int val = -1;
                             try
@@ -296,14 +291,14 @@ namespace CalCompare
                             }
                             catch (ArgumentOutOfRangeException e)
                             {
-                                // val is not a hex number. Just add the original string to the table.
+                                // hexVal is not a hex number. Just add the original string to the table.
                                 // It is probably "*UNDEF*".
                                 AddRowToTable(ref  charTable, part, calset, calname, units, hexVal);
                                 e.Equals(null); // just to suppress a warning
                             }
                             catch (FormatException e)
                             {
-                                // val is not a hex number. Just add the original string to the table.
+                                // hexVal is not a hex number. Just add the original string to the table.
                                 // It is probably "*UNDEF*".
                                 AddRowToTable(ref  charTable, part, calset, calname, units, hexVal);
                                 e.Equals(null); // just to suppress a warning
@@ -324,6 +319,9 @@ namespace CalCompare
                             }
                         }
                         
+                        // Display a message to the user if an undefined value is detected.
+                        NotifyIfUndef(hexVal, part, calname);
+
                         error = false;
                     }
             	}
@@ -332,6 +330,27 @@ namespace CalCompare
             if (error)
             {
                 UpdateStatusLabel("Error - The format of the line is wrong: " + line);
+            }
+        }
+
+        void NotifyIfUndef(string val, string part, string cal)
+        {
+            if ((disableUndefWarningsToolStripMenuItem.Checked == false) && val.Contains("UNDEF"))
+            {
+    			// Initializes the variables to pass to the MessageBox.Show method.
+    
+    			string message = "Calplot " + part + " has an undefined value for " + cal + "." + " Disabled undef warnings?";
+                string caption = "Warning: Undef value detected";
+    			MessageBoxButtons buttons = MessageBoxButtons.YesNo;
+    			DialogResult result;
+    
+    			// Displays the MessageBox.
+    			result = MessageBox.Show(message, caption, buttons);
+    
+    			if (result == System.Windows.Forms.DialogResult.Yes)
+    			{
+    				disableUndefWarningsToolStripMenuItem.Checked = true;
+    			}
             }
         }
 

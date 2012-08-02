@@ -52,6 +52,7 @@ namespace CalCompare
             this.autoResizeColumnsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hideEmptyColumnsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.removeEmptyColumnsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.disableUndefWarningsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.usersGuideToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.calSupportToolsWebSiteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -157,7 +158,8 @@ namespace CalCompare
                                     this.clearTheGridToolStripMenuItem,
                                     this.autoResizeColumnsToolStripMenuItem,
                                     this.hideEmptyColumnsToolStripMenuItem,
-                                    this.removeEmptyColumnsToolStripMenuItem});
+                                    this.removeEmptyColumnsToolStripMenuItem,
+                                    this.disableUndefWarningsToolStripMenuItem});
             this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             this.toolsToolStripMenuItem.Size = new System.Drawing.Size(48, 20);
             this.toolsToolStripMenuItem.Text = "Tools";
@@ -191,6 +193,13 @@ namespace CalCompare
             this.removeEmptyColumnsToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
             this.removeEmptyColumnsToolStripMenuItem.Text = "Remove Empty Columns";
             this.removeEmptyColumnsToolStripMenuItem.Click += new System.EventHandler(this.RemoveEmptyColumnsToolStripMenuItemClick);
+            // 
+            // disableUndefWarningsToolStripMenuItem
+            // 
+            this.disableUndefWarningsToolStripMenuItem.CheckOnClick = true;
+            this.disableUndefWarningsToolStripMenuItem.Name = "disableUndefWarningsToolStripMenuItem";
+            this.disableUndefWarningsToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
+            this.disableUndefWarningsToolStripMenuItem.Text = "Disable Undef Warnings";
             // 
             // helpToolStripMenuItem
             // 
@@ -397,6 +406,7 @@ namespace CalCompare
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+        private System.Windows.Forms.ToolStripMenuItem disableUndefWarningsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem removeEmptyColumnsToolStripMenuItem;
         private System.Windows.Forms.RadioButton charRadioButton;
         private System.Windows.Forms.RadioButton engRadioButton;
