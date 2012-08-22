@@ -339,7 +339,7 @@ namespace CalCompare
             {
     			// Initializes the variables to pass to the MessageBox.Show method.
     
-    			string message = "Calplot " + part + " has an undefined value for " + cal + "." + " Disabled undef warnings?";
+    			string message = "Calplot " + part + " has an undefined value for " + cal + "." + " Disable undef warnings?";
                 string caption = "Warning: Undef value detected";
     			MessageBoxButtons buttons = MessageBoxButtons.YesNo;
     			DialogResult result;
